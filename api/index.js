@@ -183,6 +183,29 @@ module.exports = async (req, res) => {
     </div>`));
   }
 
+  // ── Manifest для PWA (содержит токен) ──────────────────────────────────
+  if (path === '/manifest.json') {
+    const t = url.searchParams.get('token');
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({
+      name: 'Калькулятор',
+      short_name: 'Калькулятор',
+      start_url: '/?token=' + t,
+      display: 'standalone',
+      background_color: '#000000',
+      theme_color: '#000000',
+      icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }]
+    }));
+  }
+
+  // ── Иконка-заглушка ───────────────────────────────────────────────────────
+  if (path === '/icon.png') {
+    // 1x1 чёрный PNG
+    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    res.setHeader('Content-Type', 'image/png');
+    return res.end(buf);
+  }
+
   // Считаем визит
   clients[token].visits++;
   clients[token].lastSeen = Date.now();
@@ -198,6 +221,7 @@ module.exports = async (req, res) => {
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Калькулятор">
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json?token=${token}">
 <title>Калькулятор</title>
 <script>
   // Сохраняем токен в localStorage при первом открытии по ссылке
