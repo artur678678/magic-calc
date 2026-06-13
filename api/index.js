@@ -235,8 +235,9 @@ module.exports = async (req, res) => {
     padding:0 0 max(env(safe-area-inset-bottom,0px), 8px) 0;
   }
   .display {
-    padding:0 24px 8px 24px; text-align:right; min-height:140px;
+    padding:0 24px 12px 24px; text-align:right;
     display:flex; flex-direction:column; justify-content:flex-end;
+    flex:1;
   }
   .history { font-size:14px; color:#636366; margin-bottom:4px;
     white-space:nowrap; overflow:hidden; text-align:right;
@@ -349,7 +350,11 @@ function setDisplay(val){
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
 function setHistory(val){document.getElementById('history').textContent=val;}
-function renderHistory(){setHistory(historyParts.join(' '));}
+function renderHistory(){
+  // Remove leading "= " if present
+  let h=historyParts.join(' ').replace(/^= /,'');
+  setHistory(h);
+}
 function setActiveOp(op){
   ['opDiv','opMul','opSub','opAdd'].forEach(id=>document.getElementById(id).classList.remove('active-op'));
   const map={'÷':'opDiv','×':'opMul','−':'opSub','+':'opAdd'};
