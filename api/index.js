@@ -1,12 +1,26 @@
-// api/index.js
-// Хранилище клиентов (в памяти, сбрасывается при деплое)
-// Для постоянного хранения используем Vercel KV (настроим позже)
+// api/index.js — Magic Calculator с Upstash Redis
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'magic2024';
+const REDIS_URL      = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN    = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Простое хранилище токенов в памяти
-// Ключ = токен, значение = объект клиента
-let clients = {};
+// ── Redis helpers ─────────────────────────────────────────────────────────────
+async function redisCmd(...args) {
+  const res = await fetch(`${REDIS_URL}/${args.map(encodeURIComponent).join('/')}`, {
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+  });
+  const data = await res.json();
+  return data.result;
+}
+
+async function getClients() {
+  const raw = await redisCmd('GET', 'clients');
+  return raw ? JSON.parse(raw) : {};
+}
+
+async function saveClients(clients) {
+  await redisCmd('SET', 'clients', JSON.stringify(clients));
+}
 
 function randomToken() {
   return Math.random().toString(36).slice(2, 10) +
@@ -29,7 +43,7 @@ function html(content) {
            background:#ff9f0a; color:#fff; font-size:16px; cursor:pointer; }
   button:hover { background:#e8900a; }
   table { width:100%; border-collapse:collapse; margin-top:16px; font-size:14px; }
-  th,td { padding:8px 6px; text-align:left; border-bottom:1px solid #2c2c2e; }
+  th,td { padding:8px 6px; text-align:left; border-bottom:1px solid #2c2c2e; word-break:break-all; }
   th { color:#636366; font-weight:normal; }
   .badge-ok  { color:#30d158; }
   .badge-off { color:#ff453a; }
@@ -44,30 +58,23 @@ module.exports = async (req, res) => {
   const url  = new URL(req.url, `https://${req.headers.host}`);
   const path = url.pathname;
 
-  // ── ADMIN: вход ──────────────────────────────────────────────────────────
+  // ── ADMIN: вход ───────────────────────────────────────────────────────────
   if (path === '/admin') {
-    // POST — проверяем пароль
     if (req.method === 'POST') {
       let body = '';
       await new Promise(r => { req.on('data', c => body += c); req.on('end', r); });
-      const params = new URLSearchParams(body);
-      const pass   = params.get('password');
-
+      const pass = new URLSearchParams(body).get('password');
       if (pass !== ADMIN_PASSWORD) {
         return res.end(html(`<div class="box">
           <h2>🔐 Неверный пароль</h2>
           <a href="/admin">← Назад</a>
         </div>`));
       }
-
-      // Устанавливаем куку сессии
       res.setHeader('Set-Cookie', `admin_session=${ADMIN_PASSWORD}; Path=/; HttpOnly`);
       res.setHeader('Location', '/admin/dashboard');
       res.statusCode = 302;
       return res.end();
     }
-
-    // GET — форма входа
     return res.end(html(`<div class="box">
       <h2>🎩 Вход в панель управления</h2>
       <form method="POST" action="/admin">
@@ -77,31 +84,23 @@ module.exports = async (req, res) => {
     </div>`));
   }
 
-  // ── Проверка авторизации админа ──────────────────────────────────────────
+  // ── Проверка авторизации ───────────────────────────────────────────────────
   const cookies = Object.fromEntries(
-    (req.headers.cookie || '').split(';').map(c => c.trim().split('='))
+    (req.headers.cookie || '').split(';').map(c => { const [k,...v]=c.trim().split('='); return [k,v.join('=')]; })
   );
   const isAdmin = cookies['admin_session'] === ADMIN_PASSWORD;
 
-  // ── ADMIN: дашборд ───────────────────────────────────────────────────────
+  // ── ADMIN: дашборд ────────────────────────────────────────────────────────
   if (path === '/admin/dashboard') {
-    if (!isAdmin) {
-      res.setHeader('Location', '/admin'); res.statusCode = 302; return res.end();
-    }
-
+    if (!isAdmin) { res.setHeader('Location', '/admin'); res.statusCode = 302; return res.end(); }
+    const clients = await getClients();
     const rows = Object.entries(clients).map(([token, c]) => {
       const link = `https://${req.headers.host}/?token=${token}`;
-      const status = c.active
-        ? `<span class="badge-ok">✅ активна</span>`
-        : `<span class="badge-off">🚫 отозвана</span>`;
-      const lastSeen = c.lastSeen
-        ? new Date(c.lastSeen).toLocaleString('ru')
-        : 'не открывали';
-      const toggleLabel = c.active ? 'Отозвать' : 'Включить';
-      const toggleClass = c.active ? 'btn-small btn-red' : 'btn-small';
+      const status = c.active ? `<span class="badge-ok">✅ активна</span>` : `<span class="badge-off">🚫 отозвана</span>`;
+      const lastSeen = c.lastSeen ? new Date(c.lastSeen).toLocaleString('ru') : 'не открывали';
       return `<tr>
         <td>${c.name}</td>
-        <td><code>${token}</code>
+        <td><code style="font-size:11px">${token}</code>
           <span class="copy" onclick="navigator.clipboard.writeText('${link}');this.textContent='✓'">📋</span>
         </td>
         <td>${c.visits}</td>
@@ -110,7 +109,7 @@ module.exports = async (req, res) => {
         <td>
           <form method="POST" action="/admin/toggle" style="display:inline">
             <input type="hidden" name="token" value="${token}">
-            <button class="${toggleClass}">${toggleLabel}</button>
+            <button class="${c.active ? 'btn-small btn-red' : 'btn-small'}">${c.active ? 'Отозвать' : 'Включить'}</button>
           </form>
           <form method="POST" action="/admin/delete" style="display:inline;margin-left:4px">
             <input type="hidden" name="token" value="${token}">
@@ -119,8 +118,7 @@ module.exports = async (req, res) => {
         </td>
       </tr>`;
     }).join('');
-
-    return res.end(html(`<div class="box" style="max-width:800px">
+    return res.end(html(`<div class="box" style="max-width:820px">
       <h2>🎩 Панель управления</h2>
       <form method="POST" action="/admin/create" style="display:flex;gap:8px;margin-bottom:16px">
         <input style="margin:0" type="text" name="name" placeholder="Имя клиента" required>
@@ -133,46 +131,72 @@ module.exports = async (req, res) => {
     </div>`));
   }
 
-  // ── ADMIN: создать токен ─────────────────────────────────────────────────
+  // ── ADMIN: создать ────────────────────────────────────────────────────────
   if (path === '/admin/create' && req.method === 'POST') {
     if (!isAdmin) { res.statusCode = 403; return res.end(); }
     let body = '';
     await new Promise(r => { req.on('data', c => body += c); req.on('end', r); });
-    const params = new URLSearchParams(body);
-    const name   = params.get('name') || 'Клиент';
-    const token  = randomToken();
+    const name = new URLSearchParams(body).get('name') || 'Клиент';
+    const token = randomToken();
+    const clients = await getClients();
     clients[token] = { name, visits: 0, active: true, lastSeen: null, created: Date.now() };
+    await saveClients(clients);
     res.setHeader('Location', '/admin/dashboard');
     res.statusCode = 302;
     return res.end();
   }
 
-  // ── ADMIN: отозвать/включить токен ───────────────────────────────────────
+  // ── ADMIN: toggle ─────────────────────────────────────────────────────────
   if (path === '/admin/toggle' && req.method === 'POST') {
     if (!isAdmin) { res.statusCode = 403; return res.end(); }
     let body = '';
     await new Promise(r => { req.on('data', c => body += c); req.on('end', r); });
     const token = new URLSearchParams(body).get('token');
+    const clients = await getClients();
     if (clients[token]) clients[token].active = !clients[token].active;
+    await saveClients(clients);
     res.setHeader('Location', '/admin/dashboard');
     res.statusCode = 302;
     return res.end();
   }
 
-  // ── ADMIN: удалить токен ─────────────────────────────────────────────────
+  // ── ADMIN: delete ─────────────────────────────────────────────────────────
   if (path === '/admin/delete' && req.method === 'POST') {
     if (!isAdmin) { res.statusCode = 403; return res.end(); }
     let body = '';
     await new Promise(r => { req.on('data', c => body += c); req.on('end', r); });
     const token = new URLSearchParams(body).get('token');
+    const clients = await getClients();
     delete clients[token];
+    await saveClients(clients);
     res.setHeader('Location', '/admin/dashboard');
     res.statusCode = 302;
     return res.end();
   }
 
-  // ── КАЛЬКУЛЯТОР: проверка токена ─────────────────────────────────────────
-  const token  = url.searchParams.get('token');
+  // ── Manifest PWA (токен зашит в start_url) ────────────────────────────────
+  if (path === '/manifest.json') {
+    const t = url.searchParams.get('token');
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({
+      name: 'Калькулятор', short_name: 'Калькулятор',
+      start_url: '/?token=' + t,
+      display: 'standalone',
+      background_color: '#000000', theme_color: '#000000',
+      icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }]
+    }));
+  }
+
+  // ── Иконка ────────────────────────────────────────────────────────────────
+  if (path === '/icon.png') {
+    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    res.setHeader('Content-Type', 'image/png');
+    return res.end(buf);
+  }
+
+  // ── Проверка токена ───────────────────────────────────────────────────────
+  const token = url.searchParams.get('token');
+  const clients = await getClients();
 
   if (!token || !clients[token] || !clients[token].active) {
     res.statusCode = 403;
@@ -183,34 +207,12 @@ module.exports = async (req, res) => {
     </div>`));
   }
 
-  // ── Manifest для PWA (содержит токен) ──────────────────────────────────
-  if (path === '/manifest.json') {
-    const t = url.searchParams.get('token');
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({
-      name: 'Калькулятор',
-      short_name: 'Калькулятор',
-      start_url: '/?token=' + t,
-      display: 'standalone',
-      background_color: '#000000',
-      theme_color: '#000000',
-      icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }]
-    }));
-  }
-
-  // ── Иконка-заглушка ───────────────────────────────────────────────────────
-  if (path === '/icon.png') {
-    // 1x1 чёрный PNG
-    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-    res.setHeader('Content-Type', 'image/png');
-    return res.end(buf);
-  }
-
   // Считаем визит
   clients[token].visits++;
   clients[token].lastSeen = Date.now();
+  await saveClients(clients);
 
-  // ── Отдаём калькулятор ───────────────────────────────────────────────────
+  // ── Калькулятор ───────────────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   return res.end(`<!DOCTYPE html>
 <html lang="ru">
@@ -223,85 +225,46 @@ module.exports = async (req, res) => {
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.json?token=${token}">
 <title>Калькулятор</title>
-<script>
-  // Сохраняем токен в localStorage при первом открытии по ссылке
-  (function() {
-    const params = new URLSearchParams(window.location.search);
-    const token  = params.get('token');
-    if (token) {
-      localStorage.setItem('calc_token', token);
-    } else {
-      // Открыто с экрана домой — редиректим с сохранённым токеном
-      const saved = localStorage.getItem('calc_token');
-      if (saved) {
-        window.location.replace('/?token=' + saved);
-      }
-    }
-  })();
-</script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { width: 100%; height: 100%; background: #000; overflow: hidden;
-    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; background:#000; overflow:hidden;
+    font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif; }
   .calculator {
-    width: 100%; height: 100%; height: 100dvh;
-    background: #000;
-    display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 0 0 env(safe-area-inset-bottom, 20px) 0;
+    width:100%; height:100%; height:100dvh; background:#000;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    padding:0 0 env(safe-area-inset-bottom,20px) 0;
   }
   .display {
-    padding: 0 24px 8px 24px;
-    text-align: right; min-height: 140px;
-    display: flex; flex-direction: column; justify-content: flex-end;
+    padding:0 24px 8px 24px; text-align:right; min-height:140px;
+    display:flex; flex-direction:column; justify-content:flex-end;
   }
-  .history {
-    font-size: 16px; color: #636366;
-    margin-bottom: 4px;
-    word-break: break-all; text-align: right;
-    line-height: 1.5; max-height: 72px; overflow: hidden;
-  }
-  .expression {
-    font-size: 18px; color: #888;
-    min-height: 22px; margin-bottom: 4px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .result {
-    font-size: 72px; font-weight: 300; color: #fff;
-    line-height: 1; letter-spacing: -2px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    transition: font-size 0.1s;
-  }
-  .result.s1 { font-size: 52px; }
-  .result.s2 { font-size: 38px; }
-  .result.s3 { font-size: 30px; }
-  .buttons {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 12px; padding: 0 12px;
-  }
-  .btn {
-    border: none; border-radius: 50%; font-size: 30px; font-weight: 400;
-    cursor: pointer; aspect-ratio: 1;
-    display: flex; align-items: center; justify-content: center;
-    transition: filter 0.08s;
-    user-select: none; -webkit-user-select: none;
-  }
-  .btn:active { filter: brightness(1.5); }
-  .btn.gray   { background: #a5a5a5; color: #000; }
-  .btn.dark   { background: #333333; color: #fff; }
-  .btn.orange { background: #ff9f0a; color: #fff; }
-  .btn.orange.active-op { background: #fff; color: #ff9f0a; }
-  .btn.zero {
-    grid-column: span 2; border-radius: 50px;
-    justify-content: flex-start; padding-left: 28px;
-    aspect-ratio: unset;
-    height: calc((100vw - 24px - 36px) / 4); max-height: 85px;
-  }
+  .history { font-size:16px; color:#636366; margin-bottom:4px;
+    word-break:break-all; text-align:right; line-height:1.5; max-height:72px; overflow:hidden; }
+  .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .result { font-size:72px; font-weight:300; color:#fff; line-height:1;
+    letter-spacing:-2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:font-size 0.1s; }
+  .result.s1 { font-size:52px; }
+  .result.s2 { font-size:38px; }
+  .result.s3 { font-size:30px; }
+  .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; padding:0 12px; }
+  .btn { border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    transition:filter 0.08s; user-select:none; -webkit-user-select:none; }
+  .btn:active { filter:brightness(1.5); }
+  .btn.gray   { background:#a5a5a5; color:#000; }
+  .btn.dark   { background:#333333; color:#fff; }
+  .btn.orange { background:#ff9f0a; color:#fff; }
+  .btn.orange.active-op { background:#fff; color:#ff9f0a; }
+  .btn.zero { grid-column:span 2; border-radius:50px; justify-content:flex-start;
+    padding-left:28px; aspect-ratio:unset;
+    height:calc((100vw - 24px - 36px) / 4); max-height:85px; }
   @keyframes pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(255,159,10,0.8); }
-    70%  { box-shadow: 0 0 0 18px rgba(255,159,10,0); }
-    100% { box-shadow: 0 0 0 0 rgba(255,159,10,0); }
+    0%   { box-shadow:0 0 0 0 rgba(255,159,10,0.8); }
+    70%  { box-shadow:0 0 0 18px rgba(255,159,10,0); }
+    100% { box-shadow:0 0 0 0 rgba(255,159,10,0); }
   }
-  .pulse-anim { animation: pulse 0.5s ease-out; }
+  .pulse-anim { animation:pulse 0.5s ease-out; }
 </style>
 </head>
 <body>
@@ -373,7 +336,7 @@ function setDisplay(val){
   current=String(val);
   const el=document.getElementById('result');
   el.textContent=current;
-  const l=current.replace(/[^\\d]/g,'').length;
+  const l=current.replace(/[^\d]/g,'').length;
   el.className='result'+(l>13?' s3':l>10?' s2':l>7?' s1':'');
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
@@ -384,7 +347,6 @@ function setActiveOp(op){
   const map={'÷':'opDiv','×':'opMul','−':'opSub','+':'opAdd'};
   if(op&&map[op])document.getElementById(map[op]).classList.add('active-op');
 }
-
 function pressAC(){
   current='0';operand1=null;pendingOp=null;justEvaled=false;newNumber=true;
   magicPhase=0;magicTarget=0;magicSum=0;magicNums=0;
@@ -392,7 +354,6 @@ function pressAC(){
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
   document.getElementById('btnAC').textContent='AC';
 }
-
 function pressNum(n){
   document.getElementById('btnAC').textContent='C';
   if(magicPhase===2){
@@ -414,7 +375,6 @@ function pressNum(n){
   }
   setDisplay(current);
 }
-
 function pressDot(){
   if(magicPhase===2)return;
   document.getElementById('btnAC').textContent='C';
@@ -432,7 +392,6 @@ function pressPercent(){
   if(magicPhase===2)return;
   current=String(parseFloat(current)/100);setDisplay(current);
 }
-
 function pressOp(op){
   if(magicPhase===2)return;
   setActiveOp(op);
@@ -462,7 +421,6 @@ function pressOp(op){
   }
   pendingOp=op;newNumber=true;justEvaled=false;
 }
-
 function pressEquals(){
   if(magicPhase===2){
     historyParts[historyParts.length-1]=xShown;
@@ -477,7 +435,6 @@ function pressEquals(){
   setDisplay(fmt(res));setActiveOp(null);
   operand1=null;pendingOp=null;justEvaled=true;newNumber=true;
 }
-
 function calc(a,op,b){
   if(op==='+')return a+b;
   if(op==='−')return a-b;
