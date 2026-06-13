@@ -238,8 +238,9 @@ module.exports = async (req, res) => {
     padding:0 24px 8px 24px; text-align:right; min-height:140px;
     display:flex; flex-direction:column; justify-content:flex-end;
   }
-  .history { font-size:16px; color:#636366; margin-bottom:4px;
-    word-break:break-all; text-align:right; line-height:1.5; max-height:72px; overflow:hidden; }
+  .history { font-size:14px; color:#636366; margin-bottom:4px;
+    white-space:nowrap; overflow:hidden; text-align:right;
+    direction:rtl; text-overflow:ellipsis; }
   .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .result { font-weight:300; color:#fff; line-height:1;
@@ -339,10 +340,10 @@ function setDisplay(val){
   const l=current.replace(/[^\d]/g,'').length;
   // Шрифт уменьшается по количеству цифр
   let size=72, spacing='-3px';
-  if(l>=12){ size=30; spacing='-1px'; }
-  else if(l>=10){ size=36; spacing='-2px'; }
-  else if(l>=8) { size=46; spacing='-2px'; }
-  else if(l>=6) { size=56; spacing='-2px'; }
+  if(l>=12){ size=26; spacing='0px'; }
+  else if(l>=10){ size=30; spacing='-1px'; }
+  else if(l>=8) { size=38; spacing='-1px'; }
+  else if(l>=6) { size=50; spacing='-2px'; }
   el.style.fontSize=size+'px';
   el.style.letterSpacing=spacing;
 }
