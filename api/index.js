@@ -194,20 +194,36 @@ module.exports = async (req, res) => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Калькулятор">
+<meta name="theme-color" content="#000000">
 <title>Калькулятор</title>
+<script>
+  // Сохраняем токен в localStorage при первом открытии по ссылке
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const token  = params.get('token');
+    if (token) {
+      localStorage.setItem('calc_token', token);
+    } else {
+      // Открыто с экрана домой — редиректим с сохранённым токеном
+      const saved = localStorage.getItem('calc_token');
+      if (saved) {
+        window.location.replace('/?token=' + saved);
+      }
+    }
+  })();
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    background: #1c1c1e;
-    display: flex; justify-content: center; align-items: center;
-    min-height: 100vh;
-    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-  }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
   .calculator {
-    width: 100%; max-width: 375px; min-height: 100vh;
+    width: 100%; height: 100%; height: 100dvh;
     background: #000;
     display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 0 0 20px 0;
+    padding: 0 0 env(safe-area-inset-bottom, 20px) 0;
   }
   .display {
     padding: 0 24px 8px 24px;
@@ -453,4 +469,3 @@ function fmt(n){
 </body>
 </html>`);
 };
-
