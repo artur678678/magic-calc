@@ -336,17 +336,15 @@ function setDisplay(val){
   const el=document.getElementById('result');
   el.textContent=current;
   el.className='result';
-  // Auto-scale font to fit container width
-  const maxW=el.parentElement.clientWidth - 48;
-  let size=72;
+  const l=current.replace(/[^\d]/g,'').length;
+  // Шрифт уменьшается по количеству цифр
+  let size=72, spacing='-3px';
+  if(l>=12){ size=30; spacing='-1px'; }
+  else if(l>=10){ size=36; spacing='-2px'; }
+  else if(l>=8) { size=46; spacing='-2px'; }
+  else if(l>=6) { size=56; spacing='-2px'; }
   el.style.fontSize=size+'px';
-  el.style.letterSpacing='-2px';
-  while(el.scrollWidth>maxW && size>18){
-    size-=2;
-    el.style.fontSize=size+'px';
-    if(size<30) el.style.letterSpacing='-1px';
-    if(size<22) el.style.letterSpacing='0px';
-  }
+  el.style.letterSpacing=spacing;
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
 function setHistory(val){document.getElementById('history').textContent=val;}
