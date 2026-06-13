@@ -232,7 +232,7 @@ module.exports = async (req, res) => {
   .calculator {
     width:100%; height:100%; height:100dvh; background:#000;
     display:flex; flex-direction:column; justify-content:flex-end;
-    padding:0 0 env(safe-area-inset-bottom,20px) 0;
+    padding:0 0 calc(env(safe-area-inset-bottom,0px) + 8px) 0;
   }
   .display {
     padding:0 24px 8px 24px; text-align:right; min-height:140px;
@@ -243,11 +243,12 @@ module.exports = async (req, res) => {
   .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .result { font-size:72px; font-weight:300; color:#fff; line-height:1;
-    letter-spacing:-2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:font-size 0.1s; }
-  .result.s1 { font-size:52px; }
-  .result.s2 { font-size:38px; }
+    letter-spacing:-2px; overflow:hidden; white-space:nowrap; transition:font-size 0.1s; }
+  .result.s1 { font-size:56px; }
+  .result.s2 { font-size:42px; }
   .result.s3 { font-size:30px; }
-  .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; padding:0 12px; }
+  .result.s4 { font-size:22px; letter-spacing:-1px; }
+  .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px 0 12px; }
   .btn { border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
     aspect-ratio:1; display:flex; align-items:center; justify-content:center;
     transition:filter 0.08s; user-select:none; -webkit-user-select:none; }
@@ -337,7 +338,7 @@ function setDisplay(val){
   const el=document.getElementById('result');
   el.textContent=current;
   const l=current.replace(/[^\d]/g,'').length;
-  el.className='result'+(l>13?' s3':l>10?' s2':l>7?' s1':'');
+  el.className='result'+(l>16?' s4':l>13?' s3':l>10?' s2':l>7?' s1':'');
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
 function setHistory(val){document.getElementById('history').textContent=val;}
