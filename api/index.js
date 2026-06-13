@@ -242,12 +242,10 @@ module.exports = async (req, res) => {
     word-break:break-all; text-align:right; line-height:1.5; max-height:72px; overflow:hidden; }
   .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .result { font-size:64px; font-weight:300; color:#fff; line-height:1;
-    letter-spacing:-2px; overflow:hidden; white-space:nowrap; transition:font-size 0.1s; }
-  .result.s1 { font-size:52px; }
-  .result.s2 { font-size:40px; }
-  .result.s3 { font-size:30px; }
-  .result.s4 { font-size:24px; letter-spacing:-1px; }
+  .result { font-weight:300; color:#fff; line-height:1;
+    letter-spacing:-2px; overflow:hidden; white-space:nowrap;
+    transition:font-size 0.15s;
+    font-size:72px; width:100%; text-align:right; }
   .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px 0 12px; }
   .btn { border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
     aspect-ratio:1; display:flex; align-items:center; justify-content:center;
@@ -337,8 +335,18 @@ function setDisplay(val){
   current=String(val);
   const el=document.getElementById('result');
   el.textContent=current;
-  const l=current.replace(/[^\d]/g,'').length;
-  el.className='result'+(l>16?' s4':l>13?' s3':l>10?' s2':l>7?' s1':'');
+  el.className='result';
+  // Auto-scale font to fit container width
+  const maxW=el.parentElement.clientWidth - 48;
+  let size=72;
+  el.style.fontSize=size+'px';
+  el.style.letterSpacing='-2px';
+  while(el.scrollWidth>maxW && size>18){
+    size-=2;
+    el.style.fontSize=size+'px';
+    if(size<30) el.style.letterSpacing='-1px';
+    if(size<22) el.style.letterSpacing='0px';
+  }
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
 function setHistory(val){document.getElementById('history').textContent=val;}
@@ -426,7 +434,7 @@ function pressEquals(){
   if(magicPhase===2){
     historyParts[historyParts.length-1]=xShown;
     setHistory(historyParts.join(' ')+' =');
-    setDisplay(String(magicTarget));setExpr('');setActiveOp(null);
+    setDisplay(fmtInt(magicTarget));setExpr('');setActiveOp(null);
     magicPhase=0;justEvaled=true;newNumber=true;return;
   }
   if(pendingOp===null)return;
@@ -444,8 +452,20 @@ function calc(a,op,b){
 }
 function fmt(n){
   if(!isFinite(n))return '0';
-  if(Number.isInteger(n))return String(n);
-  return String(parseFloat(n.toFixed(6)));
+  if(Number.isInteger(n))return fmtInt(n);
+  const r=parseFloat(n.toFixed(6));
+  const parts=String(r).split('.');
+  return fmtInt(parseInt(parts[0]))+','+parts[1];
+}
+function fmtInt(n){
+  // Format with spaces: 1 234 567
+  const s=String(Math.abs(n));
+  let out='';
+  for(let i=0;i<s.length;i++){
+    if(i>0&&(s.length-i)%3===0)out+=' ';
+    out+=s[i];
+  }
+  return n<0?'-'+out:out;
 }
 </script>
 </body>
