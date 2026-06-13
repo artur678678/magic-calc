@@ -434,7 +434,7 @@ function pressEquals(){
   if(magicPhase===2){
     historyParts[historyParts.length-1]=xShown;
     setHistory(historyParts.join(' ')+' =');
-    setDisplay(fmtInt(magicTarget));setExpr('');setActiveOp(null);
+    setDisplay(String(magicTarget));setExpr('');setActiveOp(null);
     magicPhase=0;justEvaled=true;newNumber=true;return;
   }
   if(pendingOp===null)return;
