@@ -1,8 +1,8 @@
 // api/index.js — Magic Calculator с Upstash Redis
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'magic2024';
-const REDIS_URL      = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN    = process.env.UPSTASH_REDIS_REST_TOKEN;
+const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
 // ── Redis helpers ─────────────────────────────────────────────────────────────
 async function redisCmd(...args) {
