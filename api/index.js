@@ -167,7 +167,7 @@ module.exports = async (req, res) => {
     const token = new URLSearchParams(body).get('token');
     const clients = await getClients();
     if (clients[token]) {
-      delete clients[token].fingerprint;
+      delete clients[token].deviceCookie;
       delete clients[token].deviceInfo;
     }
     await saveClients(clients);
@@ -220,14 +220,13 @@ module.exports = async (req, res) => {
     </div>`));
   }
 
-  // ── Fingerprint устройства ──────────────────────────────────────────────
-  const ua = req.headers['user-agent'] || '';
-  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || '';
-  const fingerprint = Buffer.from(ua + '|' + ip).toString('base64').slice(0, 32);
+  // ── Привязка устройства через cookie ────────────────────────────────────
+  const cookieName = 'dev_' + token;
+  const cookieVal  = cookies[cookieName] || '';
 
-  if (clients[token].fingerprint) {
-    // Устройство уже зафиксировано — проверяем
-    if (clients[token].fingerprint !== fingerprint) {
+  if (clients[token].deviceCookie) {
+    // Устройство уже зафиксировано — проверяем cookie
+    if (clients[token].deviceCookie !== cookieVal) {
       res.statusCode = 403;
       return res.end(html(`<div class="box" style="text-align:center">
         <div style="font-size:48px;margin-bottom:16px">🔒</div>
@@ -236,9 +235,12 @@ module.exports = async (req, res) => {
       </div>`));
     }
   } else {
-    // Первое открытие — фиксируем устройство
-    clients[token].fingerprint = fingerprint;
-    clients[token].deviceInfo = ua.slice(0, 100);
+    // Первое открытие — генерируем уникальный cookie для этого устройства
+    const uid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    clients[token].deviceCookie = uid;
+    clients[token].deviceInfo = (req.headers['user-agent'] || '').slice(0, 100);
+    // Устанавливаем cookie на устройство клиента
+    res.setHeader('Set-Cookie', `${cookieName}=${uid}; Path=/; HttpOnly; Max-Age=31536000`);
   }
 
   clients[token].visits++;
