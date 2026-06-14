@@ -283,27 +283,35 @@ module.exports = async (req, res) => {
     <button class="btn gray"   onclick="pressPlusMinus()">+/-</button>
     <button class="btn gray" id="btnPct" onclick="pressPercent()"><span id="pctText">%</span></button>
     <button class="btn orange" id="opDiv" onclick="pressOp('÷')">÷</button>
-    <button class="btn dark" onclick="pressNum('7')">7</button>
-    <button class="btn dark" onclick="pressNum('8')">8</button>
-    <button class="btn dark" onclick="pressNum('9')">9</button>
+    <button class="btn dark" id="key7" onclick="pressNum('7')">7</button>
+    <button class="btn dark" id="key8" onclick="pressNum('8')">8</button>
+    <button class="btn dark" id="key9" onclick="pressNum('9')">9</button>
     <button class="btn orange" id="opMul" onclick="pressOp('×')">×</button>
-    <button class="btn dark" onclick="pressNum('4')">4</button>
-    <button class="btn dark" onclick="pressNum('5')">5</button>
-    <button class="btn dark" onclick="pressNum('6')">6</button>
+    <button class="btn dark" id="key4" onclick="pressNum('4')">4</button>
+    <button class="btn dark" id="key5" onclick="pressNum('5')">5</button>
+    <button class="btn dark" id="key6" onclick="pressNum('6')">6</button>
     <button class="btn orange" id="opSub" onclick="pressOp('−')">−</button>
-    <button class="btn dark" onclick="pressNum('1')">1</button>
-    <button class="btn dark" onclick="pressNum('2')">2</button>
-    <button class="btn dark" onclick="pressNum('3')">3</button>
+    <button class="btn dark" id="key1" onclick="pressNum('1')">1</button>
+    <button class="btn dark" id="key2" onclick="pressNum('2')">2</button>
+    <button class="btn dark" id="key3" onclick="pressNum('3')">3</button>
     <button class="btn orange" id="opAdd" onclick="pressOp('+')">+</button>
-    <button class="btn dark zero" id="btnZero" onclick="pressNum('0')">0</button>
+    <button class="btn dark zero" id="btnZero" id="key0" onclick="pressNum('0')">0</button>
     <button class="btn dark" onclick="pressDot()">.</button>
     <button class="btn orange" onclick="pressEquals()">=</button>
   </div>
 </div>
 <script>
+// ── Состояние калькулятора ──────────────────────────────────────────────────
 let current='0',operand1=null,pendingOp=null,justEvaled=false,newNumber=true;
-let magicPhase=0,magicTarget=0,magicSum=0,magicNums=0;
-let xDigits=[],xIndex=0,xShown='',historyParts=[];
+let historyParts=[];
+
+// ── Магическое состояние ────────────────────────────────────────────────────
+// phase: 0=обычный, 1=год1×машина, 2=ждём +, 3=год2, 4=ждём последнее число, 5=зритель тыкает
+let magicPhase=0;
+let magicTarget=0;   // целевое число HHMMDDMMYYYY
+let magicStep1=0;    // результат год1 × машина
+let magicStep2=0;    // результат после + год2
+let xDigits=[],xIndex=0,xShown='';
 
 function buildTarget(){
   const t=new Date(Date.now()+60000);
@@ -315,10 +323,32 @@ function buildTarget(){
   return parseInt(hh+mm+dd+mo+yy,10);
 }
 
+// Показать точку на кнопке с нужной цифрой
+function showDotOnKey(n){
+  clearDots();
+  const el=document.getElementById('key'+n);
+  if(el){
+    const span=document.createElement('span');
+    span.id='keydot'+n;
+    span.style.cssText='position:absolute;bottom:6px;left:50%;transform:translateX(-50%);'+
+      'width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.7);pointer-events:none;';
+    el.style.position='relative';
+    el.appendChild(span);
+  }
+}
+function clearDots(){
+  for(let i=0;i<=9;i++){
+    const d=document.getElementById('keydot'+i);
+    if(d)d.remove();
+  }
+}
+
 // Активация по нажатию %
 
 function armMagic(){
-  magicTarget=buildTarget();magicPhase=1;magicSum=0;magicNums=0;
+  magicTarget=buildTarget();
+  magicPhase=1; // ждём: год1 × машина
+  magicStep1=0;magicStep2=0;
   xDigits=[];xIndex=0;xShown='';historyParts=[];
   current='0';operand1=null;pendingOp=null;justEvaled=false;newNumber=true;
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
@@ -375,7 +405,9 @@ function pressAC(){
 }
 function pressNum(n){
   document.getElementById('btnAC').textContent='C';
-  if(magicPhase===2){
+
+  // Фаза 5: зритель тыкает вслепую — каждое нажатие = следующая цифра X
+  if(magicPhase===5){
     if(xIndex<xDigits.length){
       xShown+=xDigits[xIndex];xIndex++;
       setDisplay(xShown);
@@ -384,10 +416,10 @@ function pressNum(n){
     }
     return;
   }
+
   setActiveOp(null);
   if(justEvaled||newNumber){
     current=n;justEvaled=false;newNumber=false;
-    if(magicPhase===1)magicNums++;
   } else {
     if(current.length>=9)return;
     current=(current==='0')?n:current+n;
@@ -408,37 +440,23 @@ function pressPlusMinus(){
   setDisplay(current);
 }
 function pressPercent(){
-  if(magicPhase===2)return;
+  if(magicPhase===5)return;
   if(magicPhase===0){
-    // Активируем магический режим
     armMagic();
-    // Незаметный индикатор - добавляем крошечную точку снизу
     document.getElementById('pctText').innerHTML='%<span style="font-size:6px;vertical-align:sub;opacity:0.6">•</span>';
     return;
   }
+  // В магическом режиме % не работает
+  if(magicPhase>0)return;
   current=String(parseFloat(current)/100);setDisplay(current);
 }
 function pressOp(op){
-  if(magicPhase===2)return;
+  if(magicPhase===5)return; // заблокировано пока зритель тыкает
+
   setActiveOp(op);
   const val=parseFloat(current)||0;
-  if(magicPhase===1){
-    if(!newNumber){
-      magicSum+=val;
-      historyParts.push(String(val));historyParts.push('+');
-      renderHistory();setDisplay('0');
-    }
-    newNumber=true;
-    if(magicNums>=4){
-      const x=magicTarget-magicSum;
-      xDigits=String(Math.abs(x)).split('');
-      if(x<0)xDigits.unshift('-');
-      xIndex=0;xShown='';magicPhase=2;
-      historyParts.push('');renderHistory();
-      setDisplay('0');setExpr('');
-    }
-    return;
-  }
+
+  // Обычная арифметика (работает и в магическом режиме до фазы 5)
   if(operand1!==null&&!newNumber&&!justEvaled){
     const res=calc(operand1,pendingOp,val);
     setDisplay(fmt(res));setExpr(fmt(res)+' '+op);operand1=res;
@@ -446,6 +464,23 @@ function pressOp(op){
     operand1=val;setExpr(fmt(val)+' '+op);
   }
   pendingOp=op;newNumber=true;justEvaled=false;
+
+  // Магические переходы при нажатии +
+  if(op==='+'){
+    if(magicPhase===2){
+      // После шага 1: начинаем вводить год2
+      magicPhase=3;
+    } else if(magicPhase===4){
+      // После шага 2: зритель начинает тыкать
+      const x=magicTarget-magicStep2;
+      xDigits=String(Math.abs(x)).split('');
+      if(x<0)xDigits.unshift('-');
+      xIndex=0;xShown='';
+      magicPhase=5;
+      historyParts.push('');renderHistory();
+      clearDots();
+    }
+  }
 }
 function pressEquals(){
   if(magicPhase===2){
