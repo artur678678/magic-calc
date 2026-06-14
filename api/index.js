@@ -399,16 +399,22 @@ function pressNum(n){
   if(mPhase===5){
     if(xIdx<xDigits.length){
       xShown+=xDigits[xIdx];xIdx++;
-      setDisplay(xShown);
-      historyParts[historyParts.length-1]=xShown;
+      setDisplay(fmtInt(parseInt(xShown)));
+      historyParts[historyParts.length-1]=fmtInt(parseInt(xShown));
       renderHistory();
     }
     return;
   }
   setActiveOp(null);
   if(fresh){current=n;fresh=false;}
-  else{if(current.length>=9)return;current=(current==='0')?n:current+n;}
-  setDisplay(current);
+  else{if(current.replace('.','').length>=9)return;current=(current==='0')?n:current+n;}
+  // Показываем с пробелами если целое
+  const num=parseFloat(current);
+  if(!current.includes('.')&&!current.includes('-')){
+    setDisplay(fmtInt(parseInt(current)));
+  } else {
+    setDisplay(current);
+  }
 }
 function pressDot(){
   if(mPhase===5)return;
@@ -452,11 +458,18 @@ function pressOp(op){
   if(op1!==null&&!fresh){
     const res=doCalc(op1,pendOp,val);
     setDisplay(fmt(res));
-    historyParts=[fmt(res)+' '+op];renderHistory();
+    historyParts=[fmt(res)+' '+op];
+    renderHistory();
     op1=res;
   } else {
     op1=val;
-    historyParts=[fmt(val)+' '+op];renderHistory();
+    // История показывает число + оператор, дисплей очищается для нового ввода
+    historyParts=[fmt(val)+' '+op];
+    renderHistory();
+    setDisplay('0');
+    fresh=true;
+    pendOp=op;
+    return;
   }
   pendOp=op;fresh=true;
 }
