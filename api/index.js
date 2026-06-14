@@ -189,7 +189,7 @@ module.exports = async (req, res) => {
 
   // ── Иконка для PWA ───────────────────────────────────────────────────────
   if (path === '/icon.png' || path === '/apple-icon.png') {
-    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAFQ0lEQVR4nO2doXIUQRCGCZVCR0DFhHg8T4PHoWJSCBSCionC4XkaPA+ASoGIRiGuKlzl7p/rnp3p62x/n81tz8/Mt7N7YbdzcnFx+QxgH8+PHQDyghwgQQ6QIAdIkAMkyAES5AAJcoAEOUCCHCBBDpCceg84OzubEAOCuL+/t3/Yt3NgxlPHtYIOOTBjHdjX0SoHZqwJ42qa5MCM9WFZU76tgAQ5QIIcIEEOkCAHSJADJMgBEuQACXKABDlAghwgQQ6QIAdIkAMkyAES5AAJcoAEOUCCHCBBDpAgB0iQAyTIARLkAAlygAQ5QIIcIEEOkCAHSJADJMgBEuQAiUkOV5cxeBJY1tS6c+DHmjCupuOygh/rwL6OvnsO/HjquFbQ3aQWP+rAtxWQIAdIkAMkyAES9w3pXm5uvqgfXV9/HDIESRr8+vxH/ej1p5fdZU+W/Lnyxr9/l6lrUzNJw4ldOizplMM1BdsMX5iaSVxabONSxC1H9xRsM2Rhaibp1mIboyK+G9IhszCkTs0kQ8yw13HIMWoWllermWSUGfZqVjnGzsKSmjWTjDXDWNMkx4xZ6KtcM8kMMyyVD8sxbxa89WsmmWfGwfoH5Jg9C/ZRaiaZbcYGNQq/PgdJS46YU8QyVs0kMdtGYyx2DpBIOSJPkfaINZO8+/s+bKwNu5sHOwdIkAMk++WI38nVuDWTxF9TNjy6srBzgAQ5QIIcIEEOkCAHSJADJMgBEuQAyX45gt//aYxbM8n3F9/Cxtrm0VPp7BwgQQ6QSDni93M1Ys0k8VeW3Ted2DlA0pIj8kRpj1UzyZIX5IeMxc4BkgNyxJwollFqJonZPNQoh3eO2XNhr18zyWw/GvWtLRjaz0Hd3t6qH11dXTUO7JjlmkkmvabQNs/Rn2N3Lhr//l12Z6T7/KuZZLgfB/ckX/OWh7lwTcE2D9OxcGeumWSgH5arlbuzz/n5q948/7m7+728SM0keTv7DJmFIXVqJsnb2WfULCyvVjNJ3s4+Y2dhSc2aSfJ29pkxC32VaybJ29ln3ix469dMkrezz+xZsI9SMwmdfSApLTliThHLWDWT0NkH8iLliDxF2iPWTPLjw8+wsTbQ2QccIAdI9ssRv5OrcWsmib+mbKCzD1hBDpAgB0iQAyTIARLkAAlygAQ5QLJfjiHPZHewO27NJG+/vgkbaxs6+4AV5ACJlCN+P1cj1kwSf2Whsw84aMkReaK0x6qZhM4+kJcDcsScKJZRaibJ3tln9lzY69dMcsTOPqbLyry58FaumWSeH+3K1nuOGXPRV7Nmkhl+HKzpuCEdOxdLqtVMMtYPSzXft5VRc7G8Ts0ko/ygs88Kk9DZhyT7obMPSejs01u5ZhI6+4z85JqS0NknVz+dPEno7ANJobNP3iR09oG80NknaRI6+0BqkAMkdPbJmITOPpAd5AAJcoAEOUCCHCBBDpAgB0iQAyR09smYhM4+kB3kAAmdfZImobMPpIbOPnmT0NkH8kJnn9RJ6OyTsZ9OniRH7OxzcnFxaSlxrCeywuhY70lzsjfJpNcUBnT2wYyBR/XVTNrZBzMmHeutlq6zD2YEVLDXCe7s07rnWLcZwy8K3dPVkaT7FsSl16n6wYrNONb/9D45+CUYSHK91BRDnsZRfccu+VrrOpadAyTIARLkAAlygAQ5QIIcIMn1akIMef4oR9+xS36J7jqWnQMkiZ4+jyHP33paclTf5uE9KssDxjHkeZas7/PbeFe6w6cUz5DGkOcpVO8nFfb17ttpjv8MaQx5Xm6wf8aCZdW7b2D/ATImEkLO9eYkAAAAAElFTkSuQmCC', 'base64');
+    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAE70lEQVR4nO2cW27bQBAE5SAXNHyLHCi3MHxE50OIIUjs5eyTQ3bVr6Ft77o4kgWy376/v28AW/w6+heAvCAHSJADJMgBEuQACXKABDlAghwgQQ6QIAdIkAMkyAES5AAJcoAEOUCCHCBBDpAgB0iQAyTIARLkAAlygOT3qIU+Pz/Vjz4+PkalkL7B3zf5oz9dz528dT63UjiXV4aflHN6yYlXmixpl6PqaB4ZckzO6XVaPFKpSONnjubT6Xwt6e1m1L+2enIM2N5/Gi4j5/QuLZ6IjZC6yTHwdBpWc04faUZ4tQo5xp5O7ZrO6YPNCK8ZlWPG6cRXdk6fYkZsZb4EA0lIjnmXTmR95/SJYyOw/r4cs0+nnOKcPt2MvRTeVkCyI8eaS0dlOacvGhvFLCYHSJADJCU5Vs7V10Tn9KXvKTqRyQES5AAJcoAEOUCCHCBBDpAgB0iQAyQlOVY8c6ETndM7nzdpYSuRyQES5ADJjhwrp+trlnP60ncWkcXkAMm+HGsuIJXinL5oeOiU0OSYfUbl9Z3Tp/tRXJ+3FZBE5Zh3AUVWdk6fODz2Vq6YHDPOKL6mc/oUPwJr1r2tjD2j2tWc0wf7EVutsbyl8xbLzoN2Tu+9vbRGssYPpD077L8EndO7Rkjla+kEO2t66k6wJ5z7/GgTBDv4EgwkyAGSYQ3G7+/v6kdfX1+jUkjfIO1njsK5vDL8pJzTU/+3UnU0jww5Juf07A3GzafT+VrSUzcYD9jefxouI+f07A3GA0+nYTXn9OwNxmNPp3ZN5/TsDcYzTie+snM6DcaQkZAc8y6dyPrO6dkbjGefTjnFOZ0GY8jLjhxrLh2V5ZxOgzGkBjlAUpJj5Vx9TXROp8EYsoMcIEEOkCAHSJADJMgBEuQACXKApCTHimcudKJzOg3GkB3kAMmOHCun62uWczoNxpCafTnWXEAqxTn9HA3Gs8+ovL5zOg3GkJSoHPMuoMjKzunnaDCecUbxNZ3Tz9FgPPaMaldzTj9Tg3HnLZadB+2cfoIG454d9l+CzulnajB2buWiEyyKc58fbYJgB1+CgQQ5QEKD8enT837mcP5/gf9WJM4dwjQYl3DuEKbBWOLcIUyDcQnnDmEajEs4dwjTYFzCuUOYBmOAZ2gwTp1Og3EpxTmdBmPICw3GSdNpMIbUIAdIaDDOmE6DMWQHOUCCHCBBDpAgB0iQAyTIARLkAAkNxhnTaTCG7CAHSGgwTppOgzGkhgbjvOk0GO+v75xOgzEkpeJZ2fX3vywgOBgm7T06libd+5O8wfhYaDAuc2SD8bHQYLxLS3nLBd5fev7SPg3GdXJcQItHav9O9HNILmbGrXJH9HNIrmfGneC+6OeQXNWMO7u7o58D4JksFQzHUtgj/RwSBzPubO6Ufg6AbXI9SH0sT/uln4PJARLkAImUw+095c7PrunnuDE5oABygAQ5QIIcIEEOkCAHSJADJMgBEinHlW40j/Oza/o5bkwOKIAcIMlV+3QsT/uln4PJAZJEzT7HsrlT+jl2cPCjsEf6OQA2SNHscyy7u5u3/dDK84bHqH6Oq/oR3Bf9HDtcz4+qHdHPEeICt5fSzxGh5QPp2UdI5+/f8/IBR9czQipf2zI5fjjdCBmrddX2x19RVSOkSakuOX5IbsnsUVfY/oopW7Ck75PKGDngkvAlGEj+AfxOpspFcA1qAAAAAElFTkSuQmCC', 'base64');
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.end(buf);
@@ -242,8 +242,9 @@ module.exports = async (req, res) => {
     flex:1;
   }
   .history { font-size:14px; color:#636366; margin-bottom:4px;
-    white-space:nowrap; overflow:hidden; text-align:right;
-    direction:rtl; text-overflow:ellipsis; }
+    white-space:nowrap; overflow-x:auto; text-align:right;
+    scrollbar-width:none; -ms-overflow-style:none; }
+  .history::-webkit-scrollbar { display:none; }
   .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .result { font-weight:300; color:#fff; line-height:1;
@@ -325,29 +326,37 @@ function armMagic(){
 
 }
 
+// Canvas для точного измерения ширины текста
+const _canvas = document.createElement('canvas');
+const _ctx = _canvas.getContext('2d');
+function measureText(text, size) {
+  _ctx.font = '300 ' + size + 'px -apple-system, sans-serif';
+  return _ctx.measureText(text).width;
+}
+
 function setDisplay(val){
   current=String(val);
   const el=document.getElementById('result');
   el.textContent=current;
   el.className='result';
-  const l=current.replace(/[^\d]/g,'').length;
-  // Подбираем шрифт от большого к маленькому пока влезает
-  const maxW = (el.parentElement ? el.parentElement.clientWidth : 320) - 48;
-  const sizes = [72,64,56,48,40,34,28,22,18,14];
-  let chosen = 14;
+  const maxW = (window.innerWidth || 375) - 48;
+  const sizes = [72,64,56,48,40,34,28,22,18,15];
+  let chosen = 15;
   for(const s of sizes){
-    el.style.fontSize=s+'px';
-    el.style.letterSpacing=s>=40?'-2px':s>=28?'-1px':'0px';
-    if(el.scrollWidth <= maxW){ chosen=s; break; }
+    const w = measureText(current, s);
+    if(w <= maxW){ chosen=s; break; }
   }
   el.style.fontSize=chosen+'px';
+  el.style.letterSpacing=chosen>=40?'-2px':chosen>=28?'-1px':'0px';
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
 function setHistory(val){document.getElementById('history').textContent=val;}
 function renderHistory(){
-  // Remove leading "= " if present
   let h=historyParts.join(' ').replace(/^= /,'');
   setHistory(h);
+  // Прокручиваем в конец чтобы видеть последнее число
+  const el=document.getElementById('history');
+  el.scrollLeft=el.scrollWidth;
 }
 function setActiveOp(op){
   ['opDiv','opMul','opSub','opAdd'].forEach(id=>document.getElementById(id).classList.remove('active-op'));
