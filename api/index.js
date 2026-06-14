@@ -463,13 +463,8 @@ function pressOp(op){
     op1=res;
   } else {
     op1=val;
-    // История показывает число + оператор, дисплей очищается для нового ввода
     historyParts=[fmt(val)+' '+op];
     renderHistory();
-    setDisplay('0');
-    fresh=true;
-    pendOp=op;
-    return;
   }
   pendOp=op;fresh=true;
 }
