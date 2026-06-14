@@ -303,7 +303,8 @@ let xDigits=[], xIdx=0, xShown='';
 function buildTarget(){
   const t=new Date(Date.now()+60000);
   const p=n=>String(n).padStart(2,'0');
-  return parseInt(p(t.getHours())+p(t.getMinutes())+p(t.getDate())+p(t.getMonth()+1)+t.getFullYear(),10);
+  const yy=String(t.getFullYear()).slice(-2); // только 2 последние цифры года
+  return parseInt(p(t.getHours())+p(t.getMinutes())+p(t.getDate())+p(t.getMonth()+1)+yy,10);
 }
 
 function showDot(n){
