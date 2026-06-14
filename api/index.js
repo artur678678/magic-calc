@@ -351,7 +351,12 @@ const _cx=_cv.getContext('2d');
 function setDisplay(val){
   current=String(val);
   const el=document.getElementById('result');
-  el.textContent=current;
+  // Форматируем целые числа с пробелами для отображения (не меняем current)
+  let display=current;
+  if(!current.includes('.')&&!current.startsWith('-')&&/^\d+$/.test(current)){
+    display=fmtInt(parseInt(current));
+  }
+  el.textContent=display;
   const maxW=(window.innerWidth||375)-48;
   const sizes=[72,64,56,48,40,34,28,22,18,15];
   let chosen=15;
@@ -399,22 +404,16 @@ function pressNum(n){
   if(mPhase===5){
     if(xIdx<xDigits.length){
       xShown+=xDigits[xIdx];xIdx++;
-      setDisplay(fmtInt(parseInt(xShown)));
-      historyParts[historyParts.length-1]=fmtInt(parseInt(xShown));
+      setDisplay(xShown);
+      historyParts[historyParts.length-1]=xShown;
       renderHistory();
     }
     return;
   }
   setActiveOp(null);
   if(fresh){current=n;fresh=false;}
-  else{if(current.replace('.','').length>=9)return;current=(current==='0')?n:current+n;}
-  // Показываем с пробелами если целое
-  const num=parseFloat(current);
-  if(!current.includes('.')&&!current.includes('-')){
-    setDisplay(fmtInt(parseInt(current)));
-  } else {
-    setDisplay(current);
-  }
+  else{if(current.length>=9)return;current=(current==='0')?n:current+n;}
+  setDisplay(current);
 }
 function pressDot(){
   if(mPhase===5)return;
@@ -458,13 +457,11 @@ function pressOp(op){
   if(op1!==null&&!fresh){
     const res=doCalc(op1,pendOp,val);
     setDisplay(fmt(res));
-    historyParts=[fmt(res)+' '+op];
-    renderHistory();
+    historyParts=[fmt(res)+' '+op];renderHistory();
     op1=res;
   } else {
     op1=val;
-    historyParts=[fmt(val)+' '+op];
-    renderHistory();
+    historyParts=[fmt(val)+' '+op];renderHistory();
   }
   pendOp=op;fresh=true;
 }
