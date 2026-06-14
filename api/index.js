@@ -223,9 +223,9 @@ module.exports = async (req, res) => {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Калькулятор">
-<link rel="apple-touch-icon" href="/apple-icon.png">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.json?token=${token}">
+<link rel="apple-touch-icon" href="/apple-icon.png">
 <title>Калькулятор</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -234,12 +234,11 @@ module.exports = async (req, res) => {
   .calculator {
     width:100%; height:100%; height:100dvh; background:#000;
     display:flex; flex-direction:column; justify-content:flex-end;
-    padding:0 0 max(env(safe-area-inset-bottom,34px), 34px) 0;
+    padding:0 0 max(env(safe-area-inset-bottom,34px),34px) 0;
   }
   .display {
     padding:0 24px 12px 24px; text-align:right;
-    display:flex; flex-direction:column; justify-content:flex-end;
-    flex:1;
+    display:flex; flex-direction:column; justify-content:flex-end; flex:1;
   }
   .history { font-size:14px; color:#636366; margin-bottom:4px;
     white-space:nowrap; overflow-x:auto; text-align:right;
@@ -248,10 +247,8 @@ module.exports = async (req, res) => {
   .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .result { font-weight:300; color:#fff; line-height:1;
-    letter-spacing:-2px; overflow:hidden; white-space:nowrap;
-    transition:font-size 0.15s;
-    font-size:72px; width:100%; text-align:right; }
-  .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px 0 12px; }
+    overflow:hidden; white-space:nowrap; transition:font-size 0.1s; font-size:72px; }
+  .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px; }
   .btn { border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
     aspect-ratio:1; display:flex; align-items:center; justify-content:center;
     transition:filter 0.08s; user-select:none; -webkit-user-select:none; }
@@ -263,12 +260,6 @@ module.exports = async (req, res) => {
   .btn.zero { grid-column:span 2; border-radius:50px; justify-content:flex-start;
     padding-left:28px; aspect-ratio:unset;
     height:calc((100vw - 24px - 36px) / 4); max-height:85px; }
-  @keyframes pulse {
-    0%   { box-shadow:0 0 0 0 rgba(255,159,10,0.8); }
-    70%  { box-shadow:0 0 0 18px rgba(255,159,10,0); }
-    100% { box-shadow:0 0 0 0 rgba(255,159,10,0); }
-  }
-  .pulse-anim { animation:pulse 0.5s ease-out; }
 </style>
 </head>
 <body>
@@ -281,7 +272,7 @@ module.exports = async (req, res) => {
   <div class="buttons">
     <button class="btn gray"   id="btnAC" onclick="pressAC()">AC</button>
     <button class="btn gray"   onclick="pressPlusMinus()">+/-</button>
-    <button class="btn gray" id="btnPct" onclick="pressPercent()"><span id="pctText">%</span></button>
+    <button class="btn gray"   id="btnPct" onclick="pressPercent()"><span id="pctText">%</span></button>
     <button class="btn orange" id="opDiv" onclick="pressOp('÷')">÷</button>
     <button class="btn dark" id="key7" onclick="pressNum('7')">7</button>
     <button class="btn dark" id="key8" onclick="pressNum('8')">8</button>
@@ -295,96 +286,61 @@ module.exports = async (req, res) => {
     <button class="btn dark" id="key2" onclick="pressNum('2')">2</button>
     <button class="btn dark" id="key3" onclick="pressNum('3')">3</button>
     <button class="btn orange" id="opAdd" onclick="pressOp('+')">+</button>
-    <button class="btn dark zero" id="btnZero" id="key0" onclick="pressNum('0')">0</button>
+    <button class="btn dark zero" id="key0" onclick="pressNum('0')">0</button>
     <button class="btn dark" onclick="pressDot()">.</button>
     <button class="btn orange" onclick="pressEquals()">=</button>
   </div>
 </div>
 <script>
-// ── Состояние калькулятора ──────────────────────────────────────────────────
-let current='0',operand1=null,pendingOp=null,justEvaled=false,newNumber=true;
-let historyParts=[];
+// ── Обычный калькулятор ───────────────────────────────────────────────────────
+let current='0', op1=null, pendOp=null, fresh=true, historyParts=[];
 
-// ── Магическое состояние ────────────────────────────────────────────────────
-// phase: 0=обычный, 1=год1×машина, 2=ждём +, 3=год2, 4=ждём последнее число, 5=зритель тыкает
-let magicPhase=0;
-let magicTarget=0;   // целевое число HHMMDDMMYYYY
-let magicStep1=0;    // результат год1 × машина
-let magicStep2=0;    // результат после + год2
-let xDigits=[],xIndex=0,xShown='';
+// ── Магия ─────────────────────────────────────────────────────────────────────
+// phase: 0=обычный 1=год1×машина 2=после1= 3=год2 4=после2= 5=зритель тыкает
+let mPhase=0, mTarget=0, mRes1=0, mRes2=0;
+let xDigits=[], xIdx=0, xShown='';
 
 function buildTarget(){
   const t=new Date(Date.now()+60000);
-  const hh=String(t.getHours()).padStart(2,'0');
-  const mm=String(t.getMinutes()).padStart(2,'0');
-  const dd=String(t.getDate()).padStart(2,'0');
-  const mo=String(t.getMonth()+1).padStart(2,'0');
-  const yy=t.getFullYear();
-  return parseInt(hh+mm+dd+mo+yy,10);
+  const p=n=>String(n).padStart(2,'0');
+  return parseInt(p(t.getHours())+p(t.getMinutes())+p(t.getDate())+p(t.getMonth()+1)+t.getFullYear(),10);
 }
 
-// Показать точку на кнопке с нужной цифрой
-function showDotOnKey(n){
+function showDot(n){
   clearDots();
   const el=document.getElementById('key'+n);
-  if(el){
-    const span=document.createElement('span');
-    span.id='keydot'+n;
-    span.style.cssText='position:absolute;bottom:6px;left:50%;transform:translateX(-50%);'+
-      'width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.7);pointer-events:none;';
-    el.style.position='relative';
-    el.appendChild(span);
-  }
+  if(!el)return;
+  const dot=document.createElement('span');
+  dot.id='keydot'+n;
+  dot.style.cssText='position:absolute;bottom:5px;left:50%;transform:translateX(-50%);'+
+    'width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.75);pointer-events:none;';
+  el.style.position='relative';
+  el.appendChild(dot);
 }
-function clearDots(){
-  for(let i=0;i<=9;i++){
-    const d=document.getElementById('keydot'+i);
-    if(d)d.remove();
-  }
-}
+function clearDots(){for(let i=0;i<=9;i++){const d=document.getElementById('keydot'+i);if(d)d.remove();}}
 
-// Активация по нажатию %
-
-function armMagic(){
-  magicTarget=buildTarget();
-  magicPhase=1; // ждём: год1 × машина
-  magicStep1=0;magicStep2=0;
-  xDigits=[];xIndex=0;xShown='';historyParts=[];
-  current='0';operand1=null;pendingOp=null;justEvaled=false;newNumber=true;
-  setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
-  document.getElementById('btnAC').textContent='C';
-
-}
-
-// Canvas для точного измерения ширины текста
-const _canvas = document.createElement('canvas');
-const _ctx = _canvas.getContext('2d');
-function measureText(text, size) {
-  _ctx.font = '300 ' + size + 'px -apple-system, sans-serif';
-  return _ctx.measureText(text).width;
-}
-
+// ── Дисплей ───────────────────────────────────────────────────────────────────
+const _cv=document.createElement('canvas');
+const _cx=_cv.getContext('2d');
 function setDisplay(val){
   current=String(val);
   const el=document.getElementById('result');
   el.textContent=current;
-  el.className='result';
-  const maxW = (window.innerWidth || 375) - 48;
-  const sizes = [72,64,56,48,40,34,28,22,18,15];
-  let chosen = 15;
+  const maxW=(window.innerWidth||375)-48;
+  const sizes=[72,64,56,48,40,34,28,22,18,15];
+  let chosen=15;
   for(const s of sizes){
-    const w = measureText(current, s);
-    if(w <= maxW){ chosen=s; break; }
+    _cx.font='300 '+s+'px -apple-system,sans-serif';
+    if(_cx.measureText(current).width<=maxW){chosen=s;break;}
   }
   el.style.fontSize=chosen+'px';
   el.style.letterSpacing=chosen>=40?'-2px':chosen>=28?'-1px':'0px';
 }
-function setExpr(val){document.getElementById('expression').textContent=val;}
-function setHistory(val){document.getElementById('history').textContent=val;}
+function setExpr(v){document.getElementById('expression').textContent=v;}
+function setHistory(v){document.getElementById('history').textContent=v;}
 function renderHistory(){
-  let h=historyParts.join(' ').replace(/^= /,'');
+  const h=historyParts.join(' ').replace(/^= /,'');
   setHistory(h);
-  // Прокручиваем в конец чтобы видеть последнее число
   const el=document.getElementById('history');
   el.scrollLeft=el.scrollWidth;
 }
@@ -393,147 +349,152 @@ function setActiveOp(op){
   const map={'÷':'opDiv','×':'opMul','−':'opSub','+':'opAdd'};
   if(op&&map[op])document.getElementById(map[op]).classList.add('active-op');
 }
+
+// ── AC ────────────────────────────────────────────────────────────────────────
 function pressAC(){
-  current='0';operand1=null;pendingOp=null;justEvaled=false;newNumber=true;
-  magicPhase=0;magicTarget=0;magicSum=0;magicNums=0;
-  xDigits=[];xIndex=0;xShown='';historyParts=[];
+  current='0';op1=null;pendOp=null;fresh=true;
+  mPhase=0;mTarget=0;mRes1=0;mRes2=0;
+  xDigits=[];xIdx=0;xShown='';historyParts=[];
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
   document.getElementById('btnAC').textContent='AC';
-  // Сброс кнопки %
-  const pct=document.getElementById('btnPct');
   document.getElementById('pctText').innerHTML='%';
+  clearDots();
 }
+
+// ── % → активация ─────────────────────────────────────────────────────────────
+function pressPercent(){
+  if(mPhase>0)return;
+  pressAC();
+  mTarget=buildTarget();
+  mPhase=1;
+  document.getElementById('pctText').innerHTML='%<span style="font-size:6px;vertical-align:sub;opacity:0.6">•</span>';
+}
+
+// ── Цифры ─────────────────────────────────────────────────────────────────────
 function pressNum(n){
   document.getElementById('btnAC').textContent='C';
-
-  // Фаза 5: зритель тыкает вслепую — каждое нажатие = следующая цифра X
-  if(magicPhase===5){
-    if(xIndex<xDigits.length){
-      xShown+=xDigits[xIndex];xIndex++;
+  if(mPhase===5){
+    if(xIdx<xDigits.length){
+      xShown+=xDigits[xIdx];xIdx++;
       setDisplay(xShown);
       historyParts[historyParts.length-1]=xShown;
-      renderHistory();setExpr('+ '+xShown);
+      renderHistory();
+      setExpr('+ '+xShown);
     }
     return;
   }
-
   setActiveOp(null);
-  if(justEvaled||newNumber){
-    current=n;justEvaled=false;newNumber=false;
-  } else {
-    if(current.length>=9)return;
-    current=(current==='0')?n:current+n;
-  }
+  if(fresh){current=n;fresh=false;}
+  else{if(current.length>=9)return;current=(current==='0')?n:current+n;}
   setDisplay(current);
 }
 function pressDot(){
-  if(magicPhase===2)return;
+  if(mPhase===5)return;
   document.getElementById('btnAC').textContent='C';
-  if(justEvaled||newNumber){current='0.';justEvaled=false;newNumber=false;}
+  if(fresh){current='0.';fresh=false;}
   else if(!current.includes('.'))current+='.';
   setDisplay(current);
 }
 function pressPlusMinus(){
-  if(magicPhase===2)return;
+  if(mPhase===5)return;
   if(current==='0')return;
   current=current.startsWith('-')?current.slice(1):'-'+current;
   setDisplay(current);
 }
-function pressPercent(){
-  if(magicPhase===5)return;
-  if(magicPhase===0){
-    armMagic();
-    document.getElementById('pctText').innerHTML='%<span style="font-size:6px;vertical-align:sub;opacity:0.6">•</span>';
-    return;
-  }
-  // В магическом режиме % не работает
-  if(magicPhase>0)return;
-  current=String(parseFloat(current)/100);setDisplay(current);
-}
-function pressOp(op){
-  if(magicPhase===5)return;
 
+// ── Операторы ─────────────────────────────────────────────────────────────────
+function pressOp(op){
+  if(mPhase===5)return;
   setActiveOp(op);
   const val=parseFloat(current)||0;
 
-  // В магических фазах 2 и 4 — просто меняем оператор, не пересчитываем
-  if(magicPhase===2||magicPhase===4){
-    pendingOp=op;newNumber=true;justEvaled=false;
-    setExpr(fmt(operand1)+' '+op);
-  } else {
-    // Обычная арифметика
-    if(operand1!==null&&!newNumber&&!justEvaled){
-      const res=calc(operand1,pendingOp,val);
-      setDisplay(fmt(res));setExpr(fmt(res)+' '+op);operand1=res;
-    } else {
-      operand1=val;setExpr(fmt(val)+' '+op);
-    }
-    pendingOp=op;newNumber=true;justEvaled=false;
-  }
-
-  // Магические переходы при нажатии +
-  if(op==='+'){
-    if(magicPhase===2){
-      // После шага 1: готовимся принять год2
-      // operand1 уже = magicStep1, pendingOp = '+'
-      // Важно: сбрасываем justEvaled чтобы следующий ввод был новым числом
-      magicPhase=3;
-      newNumber=true;
-      justEvaled=false;
-    } else if(magicPhase===4){
-      // После шага 2: зритель начинает тыкать вслепую
-      const x=magicTarget-magicStep2;
-      xDigits=String(Math.abs(x)).split('');
-      if(x<0)xDigits.unshift('-');
-      xIndex=0;xShown='';
-      magicPhase=5;
-      operand1=magicStep2;
-      pendingOp='+';
-      newNumber=true;
-      justEvaled=false;
-      historyParts.push('');renderHistory();
-      clearDots();
-    }
-  }
-}
-function pressEquals(){
-  if(magicPhase===2){
-    historyParts[historyParts.length-1]=xShown;
-    setHistory(historyParts.join(' ')+' =');
-    setDisplay(String(magicTarget));setExpr('');setActiveOp(null);
-    magicPhase=0;justEvaled=true;newNumber=true;
-    const pct=document.getElementById('btnPct');
-    document.getElementById('pctText').innerHTML='%';
+  if(mPhase===2&&op==='+'){
+    // После шага 1: готовим сложение с годом2
+    pendOp='+';fresh=true;
+    setExpr(fmt(mRes1)+' +');
+    mPhase=3;
     return;
   }
-  if(pendingOp===null)return;
-  const val=parseFloat(current);
-  const res=calc(operand1,pendingOp,val);
-  setExpr(fmt(operand1)+' '+pendingOp+' '+fmt(val)+' =');
-  setDisplay(fmt(res));setActiveOp(null);
-  operand1=null;pendingOp=null;justEvaled=true;newNumber=true;
+  if(mPhase===4&&op==='+'){
+    // После шага 2: зритель тыкает
+    const x=mTarget-mRes2;
+    xDigits=String(Math.abs(x)).split('');
+    if(x<0)xDigits.unshift('-');
+    xIdx=0;xShown='';
+    const dc=xDigits.filter(d=>d!=='-').length;
+    showDot(dc);
+    mPhase=5;fresh=true;
+    historyParts.push('');renderHistory();
+    setExpr(fmt(mRes2)+' +');
+    return;
+  }
+
+  // Обычный режим
+  if(op1!==null&&!fresh){
+    const res=doCalc(op1,pendOp,val);
+    setDisplay(fmt(res));setExpr(fmt(res)+' '+op);op1=res;
+  } else {
+    op1=val;setExpr(fmt(val)+' '+op);
+  }
+  pendOp=op;fresh=true;
 }
-function calc(a,op,b){
+
+// ── Равно ─────────────────────────────────────────────────────────────────────
+function pressEquals(){
+  if(mPhase===5){
+    historyParts[historyParts.length-1]=xShown;
+    setHistory(historyParts.join(' ')+' =');
+    setDisplay(String(mTarget));setExpr('');setActiveOp(null);
+    mPhase=0;fresh=true;
+    document.getElementById('pctText').innerHTML='%';
+    clearDots();
+    return;
+  }
+  if(pendOp===null)return;
+  const val=parseFloat(current);
+
+  if(mPhase===1){
+    const res=doCalc(op1,pendOp,val);
+    setExpr(fmt(op1)+' '+pendOp+' '+fmt(val)+' =');
+    setDisplay(fmt(res));setActiveOp(null);
+    mRes1=res;mPhase=2;op1=res;pendOp=null;fresh=true;
+    historyParts=[fmt(res)];renderHistory();
+    return;
+  }
+  if(mPhase===3){
+    const res=mRes1+val;
+    setExpr(fmt(mRes1)+' + '+fmt(val)+' =');
+    setDisplay(fmt(res));setActiveOp(null);
+    mRes2=res;mPhase=4;op1=res;pendOp=null;fresh=true;
+    historyParts=[fmt(mRes1)+' + '+fmt(val)+' = '+fmt(res)];renderHistory();
+    return;
+  }
+
+  const res=doCalc(op1,pendOp,val);
+  setExpr(fmt(op1)+' '+pendOp+' '+fmt(val)+' =');
+  setDisplay(fmt(res));setActiveOp(null);
+  op1=null;pendOp=null;fresh=true;
+}
+
+// ── Арифметика ────────────────────────────────────────────────────────────────
+function doCalc(a,op,b){
   if(op==='+')return a+b;
   if(op==='−')return a-b;
   if(op==='×')return a*b;
   if(op==='÷')return b!==0?a/b:0;
+  return b;
 }
 function fmt(n){
   if(!isFinite(n))return '0';
   if(Number.isInteger(n))return fmtInt(n);
-  const r=parseFloat(n.toFixed(6));
+  const r=parseFloat(n.toFixed(4));
   const parts=String(r).split('.');
   return fmtInt(parseInt(parts[0]))+','+parts[1];
 }
 function fmtInt(n){
-  // Format with spaces: 1 234 567
   const s=String(Math.abs(n));
   let out='';
-  for(let i=0;i<s.length;i++){
-    if(i>0&&(s.length-i)%3===0)out+=' ';
-    out+=s[i];
-  }
+  for(let i=0;i<s.length;i++){if(i>0&&(s.length-i)%3===0)out+=' ';out+=s[i];}
   return n<0?'-'+out:out;
 }
 </script>
