@@ -451,32 +451,46 @@ function pressPercent(){
   current=String(parseFloat(current)/100);setDisplay(current);
 }
 function pressOp(op){
-  if(magicPhase===5)return; // заблокировано пока зритель тыкает
+  if(magicPhase===5)return;
 
   setActiveOp(op);
   const val=parseFloat(current)||0;
 
-  // Обычная арифметика (работает и в магическом режиме до фазы 5)
-  if(operand1!==null&&!newNumber&&!justEvaled){
-    const res=calc(operand1,pendingOp,val);
-    setDisplay(fmt(res));setExpr(fmt(res)+' '+op);operand1=res;
+  // В магических фазах 2 и 4 — просто меняем оператор, не пересчитываем
+  if(magicPhase===2||magicPhase===4){
+    pendingOp=op;newNumber=true;justEvaled=false;
+    setExpr(fmt(operand1)+' '+op);
   } else {
-    operand1=val;setExpr(fmt(val)+' '+op);
+    // Обычная арифметика
+    if(operand1!==null&&!newNumber&&!justEvaled){
+      const res=calc(operand1,pendingOp,val);
+      setDisplay(fmt(res));setExpr(fmt(res)+' '+op);operand1=res;
+    } else {
+      operand1=val;setExpr(fmt(val)+' '+op);
+    }
+    pendingOp=op;newNumber=true;justEvaled=false;
   }
-  pendingOp=op;newNumber=true;justEvaled=false;
 
   // Магические переходы при нажатии +
   if(op==='+'){
     if(magicPhase===2){
-      // После шага 1: начинаем вводить год2
+      // После шага 1: готовимся принять год2
+      // operand1 уже = magicStep1, pendingOp = '+'
+      // Важно: сбрасываем justEvaled чтобы следующий ввод был новым числом
       magicPhase=3;
+      newNumber=true;
+      justEvaled=false;
     } else if(magicPhase===4){
-      // После шага 2: зритель начинает тыкать
+      // После шага 2: зритель начинает тыкать вслепую
       const x=magicTarget-magicStep2;
       xDigits=String(Math.abs(x)).split('');
       if(x<0)xDigits.unshift('-');
       xIndex=0;xShown='';
       magicPhase=5;
+      operand1=magicStep2;
+      pendingOp='+';
+      newNumber=true;
+      justEvaled=false;
       historyParts.push('');renderHistory();
       clearDots();
     }
