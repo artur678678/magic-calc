@@ -380,7 +380,7 @@ function pressNum(n){
       setDisplay(xShown);
       historyParts[historyParts.length-1]=xShown;
       renderHistory();
-      setExpr('+ '+xShown);
+      setExpr('');
     }
     return;
   }
@@ -412,7 +412,7 @@ function pressOp(op){
   if(mPhase===2&&op==='+'){
     // После шага 1: готовим сложение с годом2
     pendOp='+';fresh=true;
-    setExpr(fmt(mRes1)+' +');
+    setExpr('');
     mPhase=3;
     return;
   }
@@ -422,11 +422,11 @@ function pressOp(op){
     xDigits=String(Math.abs(x)).split('');
     if(x<0)xDigits.unshift('-');
     xIdx=0;xShown='';
-    const dc=xDigits.filter(d=>d!=='-').length;
+    const dc=Math.min(xDigits.filter(d=>d!=='-').length, 9);
     showDot(dc);
     mPhase=5;fresh=true;
     historyParts.push('');renderHistory();
-    setExpr(fmt(mRes2)+' +');
+    setExpr('');
     return;
   }
 
@@ -467,7 +467,7 @@ function pressEquals(){
     setExpr(fmt(mRes1)+' + '+fmt(val)+' =');
     setDisplay(fmt(res));setActiveOp(null);
     mRes2=res;mPhase=4;op1=res;pendOp=null;fresh=true;
-    historyParts=[fmt(mRes1)+' + '+fmt(val)+' = '+fmt(res)];renderHistory();
+    historyParts=[fmt(mRes1)+' + '+fmt(val)+' ='];renderHistory();
     return;
   }
 
