@@ -240,12 +240,11 @@ module.exports = async (req, res) => {
     padding:0 24px 12px 24px; text-align:right;
     display:flex; flex-direction:column; justify-content:flex-end; flex:1;
   }
-  .history { font-size:14px; color:#636366; margin-bottom:4px;
+  .history { font-size:17px; color:#636366; margin-bottom:8px;
     white-space:nowrap; overflow-x:auto; text-align:right;
     scrollbar-width:none; -ms-overflow-style:none; }
   .history::-webkit-scrollbar { display:none; }
-  .expression { font-size:18px; color:#888; min-height:22px; margin-bottom:4px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .expression { display:none; }
   .result { font-weight:300; color:#fff; line-height:1;
     overflow:hidden; white-space:nowrap; transition:font-size 0.1s; font-size:72px; }
   .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px; }
@@ -313,8 +312,8 @@ function showDot(n){
   if(!el)return;
   const dot=document.createElement('span');
   dot.id='keydot'+n;
-  dot.style.cssText='position:absolute;bottom:5px;left:50%;transform:translateX(-50%);'+
-    'width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.75);pointer-events:none;';
+  dot.style.cssText='position:absolute;bottom:7px;left:50%;transform:translateX(-50%);'+
+    'width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,0.55);pointer-events:none;';
   el.style.position='relative';
   el.appendChild(dot);
 }
