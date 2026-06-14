@@ -189,34 +189,10 @@ module.exports = async (req, res) => {
 
   // ── Иконка для PWA ───────────────────────────────────────────────────────
   if (path === '/icon.png' || path === '/apple-icon.png') {
-    // SVG калькулятор → PNG через base64
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-      <rect width="192" height="192" rx="40" fill="#1c1c1e"/>
-      <!-- Дисплей -->
-      <rect x="20" y="20" width="152" height="45" rx="8" fill="#2c2c2e"/>
-      <text x="160" y="53" font-family="Arial" font-size="28" fill="white" text-anchor="end">0</text>
-      <!-- Кнопки ряд 1 -->
-      <circle cx="38" cy="100" r="20" fill="#a5a5a5"/>
-      <circle cx="84" cy="100" r="20" fill="#a5a5a5"/>
-      <circle cx="130" cy="100" r="20" fill="#a5a5a5"/>
-      <circle cx="176" cy="100" r="20" fill="#ff9f0a"/>
-      <!-- Кнопки ряд 2 -->
-      <circle cx="38" cy="145" r="20" fill="#333"/>
-      <circle cx="84" cy="145" r="20" fill="#333"/>
-      <circle cx="130" cy="145" r="20" fill="#333"/>
-      <circle cx="176" cy="145" r="20" fill="#ff9f0a"/>
-      <!-- Иконки -->
-      <text x="38" y="107" font-family="Arial" font-size="18" fill="black" text-anchor="middle">AC</text>
-      <text x="84" y="107" font-family="Arial" font-size="20" fill="black" text-anchor="middle">±</text>
-      <text x="130" y="107" font-family="Arial" font-size="20" fill="black" text-anchor="middle">%</text>
-      <text x="176" y="107" font-family="Arial" font-size="22" fill="white" text-anchor="middle">÷</text>
-      <text x="38" y="152" font-family="Arial" font-size="20" fill="white" text-anchor="middle">7</text>
-      <text x="84" y="152" font-family="Arial" font-size="20" fill="white" text-anchor="middle">8</text>
-      <text x="130" y="152" font-family="Arial" font-size="20" fill="white" text-anchor="middle">9</text>
-      <text x="176" y="152" font-family="Arial" font-size="26" fill="white" text-anchor="middle">×</text>
-    </svg>`;
-    res.setHeader('Content-Type', 'image/svg+xml');
-    return res.end(svg);
+    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAFQ0lEQVR4nO2doXIUQRCGCZVCR0DFhHg8T4PHoWJSCBSCionC4XkaPA+ASoGIRiGuKlzl7p/rnp3p62x/n81tz8/Mt7N7YbdzcnFx+QxgH8+PHQDyghwgQQ6QIAdIkAMkyAES5AAJcoAEOUCCHCBBDpCceg84OzubEAOCuL+/t3/Yt3NgxlPHtYIOOTBjHdjX0SoHZqwJ42qa5MCM9WFZU76tgAQ5QIIcIEEOkCAHSJADJMgBEuQACXKABDlAghwgQQ6QIAdIkAMkyAES5AAJcoAEOUCCHCBBDpAgB0iQAyTIARLkAAlygAQ5QIIcIEEOkCAHSJADJMgBEuQAiUkOV5cxeBJY1tS6c+DHmjCupuOygh/rwL6OvnsO/HjquFbQ3aQWP+rAtxWQIAdIkAMkyAES9w3pXm5uvqgfXV9/HDIESRr8+vxH/ej1p5fdZU+W/Lnyxr9/l6lrUzNJw4ldOizplMM1BdsMX5iaSVxabONSxC1H9xRsM2Rhaibp1mIboyK+G9IhszCkTs0kQ8yw13HIMWoWllermWSUGfZqVjnGzsKSmjWTjDXDWNMkx4xZ6KtcM8kMMyyVD8sxbxa89WsmmWfGwfoH5Jg9C/ZRaiaZbcYGNQq/PgdJS46YU8QyVs0kMdtGYyx2DpBIOSJPkfaINZO8+/s+bKwNu5sHOwdIkAMk++WI38nVuDWTxF9TNjy6srBzgAQ5QIIcIEEOkCAHSJADJMgBEuQAyX45gt//aYxbM8n3F9/Cxtrm0VPp7BwgQQ6QSDni93M1Ys0k8VeW3Ted2DlA0pIj8kRpj1UzyZIX5IeMxc4BkgNyxJwollFqJonZPNQoh3eO2XNhr18zyWw/GvWtLRjaz0Hd3t6qH11dXTUO7JjlmkkmvabQNs/Rn2N3Lhr//l12Z6T7/KuZZLgfB/ckX/OWh7lwTcE2D9OxcGeumWSgH5arlbuzz/n5q948/7m7+728SM0keTv7DJmFIXVqJsnb2WfULCyvVjNJ3s4+Y2dhSc2aSfJ29pkxC32VaybJ29ln3ix469dMkrezz+xZsI9SMwmdfSApLTliThHLWDWT0NkH8iLliDxF2iPWTPLjw8+wsTbQ2QccIAdI9ssRv5OrcWsmib+mbKCzD1hBDpAgB0iQAyTIARLkAAlygAQ5QLJfjiHPZHewO27NJG+/vgkbaxs6+4AV5ACJlCN+P1cj1kwSf2Whsw84aMkReaK0x6qZhM4+kJcDcsScKJZRaibJ3tln9lzY69dMcsTOPqbLyry58FaumWSeH+3K1nuOGXPRV7Nmkhl+HKzpuCEdOxdLqtVMMtYPSzXft5VRc7G8Ts0ko/ygs88Kk9DZhyT7obMPSejs01u5ZhI6+4z85JqS0NknVz+dPEno7ANJobNP3iR09oG80NknaRI6+0BqkAMkdPbJmITOPpAd5AAJcoAEOUCCHCBBDpAgB0iQAyR09smYhM4+kB3kAAmdfZImobMPpIbOPnmT0NkH8kJnn9RJ6OyTsZ9OniRH7OxzcnFxaSlxrCeywuhY70lzsjfJpNcUBnT2wYyBR/XVTNrZBzMmHeutlq6zD2YEVLDXCe7s07rnWLcZwy8K3dPVkaT7FsSl16n6wYrNONb/9D45+CUYSHK91BRDnsZRfccu+VrrOpadAyTIARLkAAlygAQ5QIIcIMn1akIMef4oR9+xS36J7jqWnQMkiZ4+jyHP33paclTf5uE9KssDxjHkeZas7/PbeFe6w6cUz5DGkOcpVO8nFfb17ttpjv8MaQx5Xm6wf8aCZdW7b2D/ATImEkLO9eYkAAAAAElFTkSuQmCC', 'base64');
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.end(buf);
   }
 
   // ── Проверка токена ───────────────────────────────────────────────────────
@@ -355,14 +331,16 @@ function setDisplay(val){
   el.textContent=current;
   el.className='result';
   const l=current.replace(/[^\d]/g,'').length;
-  // Шрифт уменьшается по количеству цифр
-  let size=72, spacing='-3px';
-  if(l>=12){ size=16; spacing='0px'; }
-  else if(l>=10){ size=22; spacing='-1px'; }
-  else if(l>=8) { size=38; spacing='-1px'; }
-  else if(l>=6) { size=50; spacing='-2px'; }
-  el.style.fontSize=size+'px';
-  el.style.letterSpacing=spacing;
+  // Подбираем шрифт от большого к маленькому пока влезает
+  const maxW = (el.parentElement ? el.parentElement.clientWidth : 320) - 48;
+  const sizes = [72,64,56,48,40,34,28,22,18,14];
+  let chosen = 14;
+  for(const s of sizes){
+    el.style.fontSize=s+'px';
+    el.style.letterSpacing=s>=40?'-2px':s>=28?'-1px':'0px';
+    if(el.scrollWidth <= maxW){ chosen=s; break; }
+  }
+  el.style.fontSize=chosen+'px';
 }
 function setExpr(val){document.getElementById('expression').textContent=val;}
 function setHistory(val){document.getElementById('history').textContent=val;}
