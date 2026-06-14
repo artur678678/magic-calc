@@ -278,16 +278,7 @@ module.exports = async (req, res) => {
   <div class="buttons">
     <button class="btn gray"   id="btnAC" onclick="pressAC()">AC</button>
     <button class="btn gray"   onclick="pressPlusMinus()">+/-</button>
-    <button class="btn gray" id="btnPct" onclick="pressPercent()">
-      <svg id="pctSvg" width="28" height="28" viewBox="0 0 28 28" fill="white">
-        <!-- верхний кружок -->
-        <circle cx="8" cy="8" r="4.5" fill="none" stroke="white" stroke-width="2.2"/>
-        <!-- диагональная черта -->
-        <line x1="5" y1="23" x2="23" y2="5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-        <!-- нижний кружок (обычный) -->
-        <circle id="pctCircle" cx="20" cy="20" r="4.5" fill="none" stroke="white" stroke-width="2.2"/>
-      </svg>
-    </button>
+    <button class="btn gray" id="btnPct" onclick="pressPercent()"><span id="pctText">%</span></button>
     <button class="btn orange" id="opDiv" onclick="pressOp('÷')">÷</button>
     <button class="btn dark" onclick="pressNum('7')">7</button>
     <button class="btn dark" onclick="pressNum('8')">8</button>
@@ -368,8 +359,7 @@ function pressAC(){
   document.getElementById('btnAC').textContent='AC';
   // Сброс кнопки %
   const pct=document.getElementById('btnPct');
-  pct.textContent='';
-  document.getElementById('pctCircle').setAttribute('fill','none');
+  document.getElementById('pctText').innerHTML='%';
 }
 function pressNum(n){
   document.getElementById('btnAC').textContent='C';
@@ -410,8 +400,8 @@ function pressPercent(){
   if(magicPhase===0){
     // Активируем магический режим
     armMagic();
-    // Заполняем нижний кружок % точкой
-    document.getElementById('pctCircle').setAttribute('fill','white');
+    // Незаметный индикатор - добавляем крошечную точку снизу
+    document.getElementById('pctText').innerHTML='%<span style="font-size:6px;vertical-align:sub;opacity:0.6">•</span>';
     return;
   }
   current=String(parseFloat(current)/100);setDisplay(current);
@@ -452,7 +442,7 @@ function pressEquals(){
     setDisplay(String(magicTarget));setExpr('');setActiveOp(null);
     magicPhase=0;justEvaled=true;newNumber=true;
     const pct=document.getElementById('btnPct');
-    document.getElementById('pctCircle').setAttribute('fill','none');
+    document.getElementById('pctText').innerHTML='%';
     return;
   }
   if(pendingOp===null)return;
