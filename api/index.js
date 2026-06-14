@@ -240,11 +240,12 @@ module.exports = async (req, res) => {
     padding:0 24px 12px 24px; text-align:right;
     display:flex; flex-direction:column; justify-content:flex-end; flex:1;
   }
-  .history { font-size:17px; color:#636366; margin-bottom:8px;
+  .history { font-size:14px; color:#636366; margin-bottom:2px;
     white-space:nowrap; overflow-x:auto; text-align:right;
     scrollbar-width:none; -ms-overflow-style:none; }
   .history::-webkit-scrollbar { display:none; }
-  .expression { display:none; }
+  .expression { font-size:17px; color:#636366; min-height:22px; margin-bottom:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; }
   .result { font-weight:300; color:#fff; line-height:1;
     overflow:hidden; white-space:nowrap; transition:font-size 0.1s; font-size:72px; }
   .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px; }
@@ -379,7 +380,7 @@ function pressNum(n){
       setDisplay(xShown);
       historyParts[historyParts.length-1]=xShown;
       renderHistory();
-      setExpr('');
+      setExpr('+ '+xShown);
     }
     return;
   }
@@ -411,7 +412,7 @@ function pressOp(op){
   if(mPhase===2&&op==='+'){
     // После шага 1: готовим сложение с годом2
     pendOp='+';fresh=true;
-    setExpr('');
+    setExpr(fmt(mRes1)+' +');
     mPhase=3;
     return;
   }
@@ -425,7 +426,7 @@ function pressOp(op){
     showDot(dc);
     mPhase=5;fresh=true;
     historyParts.push('');renderHistory();
-    setExpr('');
+    setExpr(fmt(mRes2)+' +');
     return;
   }
 
@@ -466,7 +467,9 @@ function pressEquals(){
     setExpr(fmt(mRes1)+' + '+fmt(val)+' =');
     setDisplay(fmt(res));setActiveOp(null);
     mRes2=res;mPhase=4;op1=res;pendOp=null;fresh=true;
-    historyParts=[fmt(mRes1)+' + '+fmt(val)+' ='];renderHistory();
+    historyParts=[fmt(mRes1)+' + '+fmt(val)+' ='];
+    renderHistory();
+    setExpr('');
     return;
   }
 
