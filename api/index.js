@@ -183,15 +183,40 @@ module.exports = async (req, res) => {
       start_url: '/?token=' + t,
       display: 'standalone',
       background_color: '#000000', theme_color: '#000000',
-      icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }]
+      icons: [{ src: '/apple-icon.png', sizes: '192x192', type: 'image/svg+xml' }]
     }));
   }
 
-  // ── Иконка ────────────────────────────────────────────────────────────────
-  if (path === '/icon.png') {
-    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-    res.setHeader('Content-Type', 'image/png');
-    return res.end(buf);
+  // ── Иконка для PWA ───────────────────────────────────────────────────────
+  if (path === '/icon.png' || path === '/apple-icon.png') {
+    // SVG калькулятор → PNG через base64
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+      <rect width="192" height="192" rx="40" fill="#1c1c1e"/>
+      <!-- Дисплей -->
+      <rect x="20" y="20" width="152" height="45" rx="8" fill="#2c2c2e"/>
+      <text x="160" y="53" font-family="Arial" font-size="28" fill="white" text-anchor="end">0</text>
+      <!-- Кнопки ряд 1 -->
+      <circle cx="38" cy="100" r="20" fill="#a5a5a5"/>
+      <circle cx="84" cy="100" r="20" fill="#a5a5a5"/>
+      <circle cx="130" cy="100" r="20" fill="#a5a5a5"/>
+      <circle cx="176" cy="100" r="20" fill="#ff9f0a"/>
+      <!-- Кнопки ряд 2 -->
+      <circle cx="38" cy="145" r="20" fill="#333"/>
+      <circle cx="84" cy="145" r="20" fill="#333"/>
+      <circle cx="130" cy="145" r="20" fill="#333"/>
+      <circle cx="176" cy="145" r="20" fill="#ff9f0a"/>
+      <!-- Иконки -->
+      <text x="38" y="107" font-family="Arial" font-size="18" fill="black" text-anchor="middle">AC</text>
+      <text x="84" y="107" font-family="Arial" font-size="20" fill="black" text-anchor="middle">±</text>
+      <text x="130" y="107" font-family="Arial" font-size="20" fill="black" text-anchor="middle">%</text>
+      <text x="176" y="107" font-family="Arial" font-size="22" fill="white" text-anchor="middle">÷</text>
+      <text x="38" y="152" font-family="Arial" font-size="20" fill="white" text-anchor="middle">7</text>
+      <text x="84" y="152" font-family="Arial" font-size="20" fill="white" text-anchor="middle">8</text>
+      <text x="130" y="152" font-family="Arial" font-size="20" fill="white" text-anchor="middle">9</text>
+      <text x="176" y="152" font-family="Arial" font-size="26" fill="white" text-anchor="middle">×</text>
+    </svg>`;
+    res.setHeader('Content-Type', 'image/svg+xml');
+    return res.end(svg);
   }
 
   // ── Проверка токена ───────────────────────────────────────────────────────
@@ -222,6 +247,7 @@ module.exports = async (req, res) => {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Калькулятор">
+<link rel="apple-touch-icon" href="/apple-icon.png">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.json?token=${token}">
 <title>Калькулятор</title>
@@ -331,8 +357,8 @@ function setDisplay(val){
   const l=current.replace(/[^\d]/g,'').length;
   // Шрифт уменьшается по количеству цифр
   let size=72, spacing='-3px';
-  if(l>=12){ size=20; spacing='0px'; }
-  else if(l>=10){ size=26; spacing='-1px'; }
+  if(l>=12){ size=16; spacing='0px'; }
+  else if(l>=10){ size=22; spacing='-1px'; }
   else if(l>=8) { size=38; spacing='-1px'; }
   else if(l>=6) { size=50; spacing='-2px'; }
   el.style.fontSize=size+'px';
