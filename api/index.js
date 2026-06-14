@@ -232,7 +232,7 @@ module.exports = async (req, res) => {
   .calculator {
     width:100%; height:100%; height:100dvh; background:#000;
     display:flex; flex-direction:column; justify-content:flex-end;
-    padding:0 0 max(env(safe-area-inset-bottom,0px), 8px) 0;
+    padding:0 0 max(env(safe-area-inset-bottom,34px), 34px) 0;
   }
   .display {
     padding:0 24px 12px 24px; text-align:right;
@@ -278,7 +278,16 @@ module.exports = async (req, res) => {
   <div class="buttons">
     <button class="btn gray"   id="btnAC" onclick="pressAC()">AC</button>
     <button class="btn gray"   onclick="pressPlusMinus()">+/-</button>
-    <button class="btn gray" id="btnPct"  onclick="pressPercent()">%</button>
+    <button class="btn gray" id="btnPct" onclick="pressPercent()">
+      <svg id="pctSvg" width="28" height="28" viewBox="0 0 28 28" fill="white">
+        <!-- верхний кружок -->
+        <circle cx="8" cy="8" r="4.5" fill="none" stroke="white" stroke-width="2.2"/>
+        <!-- диагональная черта -->
+        <line x1="5" y1="23" x2="23" y2="5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- нижний кружок (обычный) -->
+        <circle id="pctCircle" cx="20" cy="20" r="4.5" fill="none" stroke="white" stroke-width="2.2"/>
+      </svg>
+    </button>
     <button class="btn orange" id="opDiv" onclick="pressOp('÷')">÷</button>
     <button class="btn dark" onclick="pressNum('7')">7</button>
     <button class="btn dark" onclick="pressNum('8')">8</button>
@@ -359,7 +368,8 @@ function pressAC(){
   document.getElementById('btnAC').textContent='AC';
   // Сброс кнопки %
   const pct=document.getElementById('btnPct');
-  pct.textContent='%';pct.style.background='';pct.style.color='';
+  pct.textContent='';
+  document.getElementById('pctCircle').setAttribute('fill','none');
 }
 function pressNum(n){
   document.getElementById('btnAC').textContent='C';
@@ -400,10 +410,8 @@ function pressPercent(){
   if(magicPhase===0){
     // Активируем магический режим
     armMagic();
-    // Меняем вид кнопки % как индикатор
-    document.getElementById('btnPct').textContent='∗';
-    document.getElementById('btnPct').style.background='#ff9f0a';
-    document.getElementById('btnPct').style.color='#fff';
+    // Заполняем нижний кружок % точкой
+    document.getElementById('pctCircle').setAttribute('fill','white');
     return;
   }
   current=String(parseFloat(current)/100);setDisplay(current);
@@ -444,7 +452,7 @@ function pressEquals(){
     setDisplay(String(magicTarget));setExpr('');setActiveOp(null);
     magicPhase=0;justEvaled=true;newNumber=true;
     const pct=document.getElementById('btnPct');
-    pct.textContent='%';pct.style.background='';pct.style.color='';
+    document.getElementById('pctCircle').setAttribute('fill','none');
     return;
   }
   if(pendingOp===null)return;
