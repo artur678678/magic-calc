@@ -320,8 +320,7 @@ function armMagic(){
   current='0';operand1=null;pendingOp=null;justEvaled=false;newNumber=true;
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
   document.getElementById('btnAC').textContent='C';
-  btnZero.classList.add('pulse-anim');
-  setTimeout(()=>btnZero.classList.remove('pulse-anim'),600);
+
 }
 
 function setDisplay(val){
@@ -332,8 +331,8 @@ function setDisplay(val){
   const l=current.replace(/[^\d]/g,'').length;
   // Шрифт уменьшается по количеству цифр
   let size=72, spacing='-3px';
-  if(l>=12){ size=26; spacing='0px'; }
-  else if(l>=10){ size=30; spacing='-1px'; }
+  if(l>=12){ size=20; spacing='0px'; }
+  else if(l>=10){ size=26; spacing='-1px'; }
   else if(l>=8) { size=38; spacing='-1px'; }
   else if(l>=6) { size=50; spacing='-2px'; }
   el.style.fontSize=size+'px';
