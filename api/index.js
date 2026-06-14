@@ -278,7 +278,7 @@ module.exports = async (req, res) => {
   <div class="buttons">
     <button class="btn gray"   id="btnAC" onclick="pressAC()">AC</button>
     <button class="btn gray"   onclick="pressPlusMinus()">+/-</button>
-    <button class="btn gray"   onclick="pressPercent()">%</button>
+    <button class="btn gray" id="btnPct"  onclick="pressPercent()">%</button>
     <button class="btn orange" id="opDiv" onclick="pressOp('÷')">÷</button>
     <button class="btn dark" onclick="pressNum('7')">7</button>
     <button class="btn dark" onclick="pressNum('8')">8</button>
@@ -312,16 +312,7 @@ function buildTarget(){
   return parseInt(hh+mm+dd+mo+yy,10);
 }
 
-let lpTimer=null;
-const btnZero=document.getElementById('btnZero');
-function startLP(){lpTimer=setTimeout(armMagic,900);}
-function stopLP(){clearTimeout(lpTimer);}
-btnZero.addEventListener('touchstart',startLP);
-btnZero.addEventListener('touchend',stopLP);
-btnZero.addEventListener('touchmove',stopLP);
-btnZero.addEventListener('mousedown',startLP);
-btnZero.addEventListener('mouseup',stopLP);
-btnZero.addEventListener('mouseleave',stopLP);
+// Активация по нажатию %
 
 function armMagic(){
   magicTarget=buildTarget();magicPhase=1;magicSum=0;magicNums=0;
@@ -366,6 +357,9 @@ function pressAC(){
   xDigits=[];xIndex=0;xShown='';historyParts=[];
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
   document.getElementById('btnAC').textContent='AC';
+  // Сброс кнопки %
+  const pct=document.getElementById('btnPct');
+  pct.textContent='%';pct.style.background='';pct.style.color='';
 }
 function pressNum(n){
   document.getElementById('btnAC').textContent='C';
@@ -403,6 +397,15 @@ function pressPlusMinus(){
 }
 function pressPercent(){
   if(magicPhase===2)return;
+  if(magicPhase===0){
+    // Активируем магический режим
+    armMagic();
+    // Меняем вид кнопки % как индикатор
+    document.getElementById('btnPct').textContent='∗';
+    document.getElementById('btnPct').style.background='#ff9f0a';
+    document.getElementById('btnPct').style.color='#fff';
+    return;
+  }
   current=String(parseFloat(current)/100);setDisplay(current);
 }
 function pressOp(op){
@@ -439,7 +442,10 @@ function pressEquals(){
     historyParts[historyParts.length-1]=xShown;
     setHistory(historyParts.join(' ')+' =');
     setDisplay(String(magicTarget));setExpr('');setActiveOp(null);
-    magicPhase=0;justEvaled=true;newNumber=true;return;
+    magicPhase=0;justEvaled=true;newNumber=true;
+    const pct=document.getElementById('btnPct');
+    pct.textContent='%';pct.style.background='';pct.style.color='';
+    return;
   }
   if(pendingOp===null)return;
   const val=parseFloat(current);
