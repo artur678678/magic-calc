@@ -263,7 +263,8 @@ module.exports = async (req, res) => {
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; background:#000; overflow:hidden;
-    font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif; }
+    font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+    position:fixed; touch-action:none; }
   .calculator {
     width:100%; height:100%; height:100dvh; background:#000;
     display:flex; flex-direction:column; justify-content:flex-end;
@@ -283,7 +284,8 @@ module.exports = async (req, res) => {
   .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px; }
   .btn { border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
     aspect-ratio:1; display:flex; align-items:center; justify-content:center;
-    transition:filter 0.08s; user-select:none; -webkit-user-select:none; }
+    transition:filter 0.08s; user-select:none; -webkit-user-select:none;
+    -webkit-touch-callout:none; touch-action:manipulation; }
   .btn:active { filter:brightness(1.5); }
   .btn.gray   { background:#a5a5a5; color:#000; }
   .btn.dark   { background:#333333; color:#fff; }
@@ -324,7 +326,7 @@ module.exports = async (req, res) => {
   </div>
 </div>
 <script>
-let current='0', op1=null, pendOp=null, fresh=true, historyParts=[];
+let currentNum=0, current='0', op1=null, pendOp=null, fresh=true, historyParts=[];
 let mPhase=0, mTarget=0, mRes1=0, mRes2=0;
 let xDigits=[], xIdx=0, xShown='';
 
@@ -350,25 +352,39 @@ function clearDots(){for(let i=0;i<=9;i++){const d=document.getElementById('keyd
 
 const _cv=document.createElement('canvas');
 const _cx=_cv.getContext('2d');
+
+// setDisplay принимает число или строку, форматирует для экрана
+// НЕ меняет currentNum — только визуал
 function setDisplay(val){
-  current=String(val);
   const el=document.getElementById('result');
-  // Форматируем целые числа с пробелами для отображения (не меняем current)
-  let display=current;
-  if(!current.includes('.')&&!current.startsWith('-')&&/^\d+$/.test(current)){
-    display=fmtInt(parseInt(current));
+  if(typeof val === 'number'){
+    currentNum = val;
+    current = String(val);
+    el.textContent = fmtNum(val);
+  } else {
+    // строка при вводе цифр
+    current = String(val);
+    currentNum = parseFloat(current.replace(',','.')) || 0;
+    // форматируем целые с пробелами, дробные как есть
+    if(/^-?\d+$/.test(current)){
+      el.textContent = fmtInt(parseInt(current));
+    } else {
+      el.textContent = current;
+    }
   }
-  el.textContent=display;
+  // Масштабируем шрифт
+  const txt = el.textContent;
   const maxW=(window.innerWidth||375)-48;
   const sizes=[72,64,56,48,40,34,28,22,18,15];
   let chosen=15;
   for(const s of sizes){
     _cx.font='300 '+s+'px -apple-system,sans-serif';
-    if(_cx.measureText(current).width<=maxW){chosen=s;break;}
+    if(_cx.measureText(txt).width<=maxW){chosen=s;break;}
   }
   el.style.fontSize=chosen+'px';
   el.style.letterSpacing=chosen>=40?'-2px':chosen>=28?'-1px':'0px';
 }
+
 function setExpr(v){document.getElementById('expression').textContent=v;}
 function setHistory(v){document.getElementById('history').textContent=v;}
 function renderHistory(){
@@ -384,7 +400,7 @@ function setActiveOp(op){
 }
 
 function pressAC(){
-  current='0';op1=null;pendOp=null;fresh=true;
+  currentNum=0;current='0';op1=null;pendOp=null;fresh=true;
   mPhase=0;mTarget=0;mRes1=0;mRes2=0;
   xDigits=[];xIdx=0;xShown='';historyParts=[];
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
@@ -407,7 +423,7 @@ function pressNum(n){
     if(xIdx<xDigits.length){
       xShown+=xDigits[xIdx];xIdx++;
       setDisplay(xShown);
-      historyParts[historyParts.length-1]=xShown;
+      historyParts[historyParts.length-1]=fmtInt(parseInt(xShown));
       renderHistory();
     }
     return;
@@ -415,8 +431,9 @@ function pressNum(n){
   setActiveOp(null);
   if(fresh){current=n;fresh=false;}
   else{if(current.length>=9)return;current=(current==='0')?n:current+n;}
-  setDisplay(current);
+  setDisplay(current); // передаём строку → форматируется при вводе
 }
+
 function pressDot(){
   if(mPhase===5)return;
   document.getElementById('btnAC').textContent='C';
@@ -428,17 +445,18 @@ function pressPlusMinus(){
   if(mPhase===5)return;
   if(current==='0')return;
   current=current.startsWith('-')?current.slice(1):'-'+current;
+  currentNum=-currentNum;
   setDisplay(current);
 }
 
 function pressOp(op){
   if(mPhase===5)return;
   setActiveOp(op);
-  const val=parseFloat(current)||0;
+  const val=currentNum; // ← используем числовое значение, не строку
 
   if(mPhase===2&&op==='+'){
     pendOp='+';fresh=true;
-    historyParts=[fmt(mRes1)+' +'];
+    historyParts=[fmtNum(mRes1)+' +'];
     renderHistory();
     mPhase=3;
     return;
@@ -451,57 +469,57 @@ function pressOp(op){
     const dc=Math.min(xDigits.filter(d=>d!=='-').length,9);
     showDot(dc);
     mPhase=5;fresh=true;
-    historyParts=[fmt(mRes1)+' + '+fmt(mRes2-mRes1)+' = '+fmt(mRes2)+' +'];
+    historyParts=[fmtNum(mRes1)+' + '+fmtNum(mRes2-mRes1)+' = '+fmtNum(mRes2)+' +'];
     renderHistory();
     return;
   }
 
   if(op1!==null&&!fresh){
     const res=doCalc(op1,pendOp,val);
-    setDisplay(fmt(res));
-    historyParts=[fmt(res)+' '+op];renderHistory();
+    setDisplay(res); // передаём число
+    historyParts=[fmtNum(res)+' '+op];renderHistory();
     op1=res;
   } else {
     op1=val;
-    historyParts=[fmt(val)+' '+op];renderHistory();
+    historyParts=[fmtNum(val)+' '+op];renderHistory();
   }
   pendOp=op;fresh=true;
 }
 
 function pressEquals(){
   if(mPhase===5){
-    historyParts[historyParts.length-1]=xShown;
+    historyParts[historyParts.length-1]=fmtInt(parseInt(xShown));
     setHistory(historyParts.join(' ')+' =');
-    setDisplay(fmtInt(mTarget));setExpr('');setActiveOp(null);
+    setDisplay(mTarget);setExpr('');setActiveOp(null);
     mPhase=0;fresh=true;
     document.getElementById('pctText').innerHTML='%';
     clearDots();
     return;
   }
   if(pendOp===null)return;
-  const val=parseFloat(current);
+  const val=currentNum; // ← используем числовое значение
 
   if(mPhase===1){
     const res=doCalc(op1,pendOp,val);
-    historyParts=[fmt(op1)+' '+pendOp+' '+fmt(val)+' ='];
+    historyParts=[fmtNum(op1)+' '+pendOp+' '+fmtNum(val)+' ='];
     renderHistory();
-    setDisplay(fmt(res));setActiveOp(null);
+    setDisplay(res);setActiveOp(null);
     mRes1=res;mPhase=2;op1=res;pendOp=null;fresh=true;
     return;
   }
   if(mPhase===3){
     const res=mRes1+val;
-    setDisplay(fmt(res));setActiveOp(null);
+    setDisplay(res);setActiveOp(null);
     mRes2=res;mPhase=4;op1=res;pendOp=null;fresh=true;
-    historyParts=[fmt(mRes1)+' + '+fmt(val)+' ='];
+    historyParts=[fmtNum(mRes1)+' + '+fmtNum(val)+' ='];
     renderHistory();
     return;
   }
 
   const res=doCalc(op1,pendOp,val);
-  historyParts=[fmt(op1)+' '+pendOp+' '+fmt(val)+' ='];
+  historyParts=[fmtNum(op1)+' '+pendOp+' '+fmtNum(val)+' ='];
   renderHistory();
-  setDisplay(fmt(res));setActiveOp(null);
+  setDisplay(res);setActiveOp(null);
   op1=null;pendOp=null;fresh=true;
 }
 
@@ -512,15 +530,18 @@ function doCalc(a,op,b){
   if(op==='÷')return b!==0?a/b:0;
   return b;
 }
-function fmt(n){
+
+// fmtNum — форматирует число для отображения (с пробелами и запятой)
+function fmtNum(n){
   if(!isFinite(n))return '0';
   if(Number.isInteger(n))return fmtInt(n);
-  const r=parseFloat(n.toFixed(4));
+  // дробное — используем запятую, до 6 знаков
+  const r=parseFloat(n.toFixed(6));
   const parts=String(r).split('.');
-  return fmtInt(parseInt(parts[0]))+','+parts[1];
+  return fmtInt(parseInt(parts[0]))+','+parts[1].replace(/0+$/,'');
 }
 function fmtInt(n){
-  const s=String(Math.abs(n));
+  const s=String(Math.abs(Math.round(n)));
   let out='';
   for(let i=0;i<s.length;i++){if(i>0&&(s.length-i)%3===0)out+=' ';out+=s[i];}
   return n<0?'-'+out:out;
