@@ -4,7 +4,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'magic2024';
 const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
-// ── Redis helpers ─────────────────────────────────────────────────────────────
 async function redisCmd(...args) {
   const res = await fetch(`${REDIS_URL}/${args.map(encodeURIComponent).join('/')}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
@@ -12,21 +11,16 @@ async function redisCmd(...args) {
   const data = await res.json();
   return data.result;
 }
-
 async function getClients() {
   const raw = await redisCmd('GET', 'clients');
   return raw ? JSON.parse(raw) : {};
 }
-
 async function saveClients(clients) {
   await redisCmd('SET', 'clients', JSON.stringify(clients));
 }
-
 function randomToken() {
-  return Math.random().toString(36).slice(2, 10) +
-         Math.random().toString(36).slice(2, 10);
+  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
 }
-
 function html(content) {
   return `<!DOCTYPE html><html lang="ru"><head>
 <meta charset="UTF-8">
@@ -159,7 +153,6 @@ module.exports = async (req, res) => {
     return res.end();
   }
 
-  // ── ADMIN: сброс fingerprint ─────────────────────────────────────────────
   if (path === '/admin/reset' && req.method === 'POST') {
     if (!isAdmin) { res.statusCode = 403; return res.end(); }
     let body = '';
@@ -202,7 +195,7 @@ module.exports = async (req, res) => {
   }
 
   if (path === '/icon.png' || path === '/apple-icon.png') {
-    const buf = Buffer.from('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', 'base64');
+    const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAoo0lEQVR4nO19abRV1ZXunGutvc8+/W1ABKSVRgoCdohNIiYCJsE8o5VGn5rERB1SsUlVWY4kIxorib4K8VW9WCMCT1OJGWWSZxqNGUTERKJElItKQESBKJ2AF253+t2tNd+Pdc/hipxzGzh3H2V/4/64A/bda+29v7XWXHPN+U3csmUzhAhxNLCgOxCicRGSI0RVhOQIURUhOUJURUiOEFURkiNEVYTkCFEVITlCVEVIjhBVEZIjRFWE5AhRFSE5QlRFSI4QVRGSI0RVhOQIURUhOUJURUiOEFURkiNEVYTkCFEVITlCVEVIjhBVEZIjRFWE5AhRFSE5QlRFSI4QVRGSI0RVhOQIURUhOUJURUiOEFURkiNEVYTkCFEVITlCVEVIjhBVEZIjRFWE5AhRFSE5QlRFSI4QVRGSo0JEQXchSCBi0F04EsGQg8oAAMYQkWEZgfQncOhXQX0AAIjIWJBT+3CTQykFAKZpmGaEc66U8n3f933P85RSRKQUAZxYU4gmASJyzg3DMAxDCAGAnuc6juP7vv7f4e/Y8JFDKYWIiUQCAN55553t27dv27Z9//79XV3duVzOcRzP85SUROQEIwcyhoxxIYQhRBDSB4wRKXKgqkwMIMzIQJxBEOdMMACOOBIDqNUiAJiIKIWNAGWjPQBQJCk9HhBpKJOHQbACgqYiCQBVhFIIIiIDtUGQCuZYIYgaH8FjYCKRQKBXoqhJKqfaxJKqkqsKOW5KBr1Q5VQFQCjI7vKi5FJQO5l8a+VpWfPpwpXgEqFZ2kFqcuJAk1Mz1hkXiPfvfKvdF3KrCk5CcoJ1/LSmJLfGiGCJbFLkqLYLIBgCBEJUidIAZpgCGFqFGLGWcMSAsOBOAUOxQgANoQYyoiAiJ6XMXiMMz6YtPIOTCGpDCnOeKA4AuKnQqfVDISKLlxiqtirSmAFfMsxgFy1D0gEmcHByX3eBpf/qFfM1lhCKUGMCqxApkJlrIVSMqnSoACSOimFHMlFwZOApNVCGBqAD5mZeX5uZ7FWQAo4BNMBO4BHDoAmNlJJqjNeSIBQqAAA4eBJBBFAmBaEi7TuqRKCL0VQMCAiBAAkQCJAJKBIIIAJBAAAAEDEMXESoJQoIIAQBBDCBhCDAAAAQECCCCCCQQQQACRRCQQQSAQAIQABQABAAQSRQAAAIIBBKoJBoIJCAJCJAJAAIoBQQJKCIJJSAABqgBBoJIjApJRLBIMJJBMIIJADQAJDAAAIAAAAMoJSQoAKIgIIBAAJIBQCgAIIIgIoCAIBIggIAIoAABCAMBqQIJJSIBCBhQJoFpJAQQqAJAQCgRAAIRBAoAIABoAIIAJoIIQARIIoAQACIAAAMIARACACoQoAQBIICAQIAIIAAAQCJJCJAIBBhBJoIBQJJIIAiAQAASBQJJQIBoJSBoQAAECMCJAQoABBQAAQSQBhAIRBhACAABMAIIhJgSBQAIJCICAgIAASoARgARIAAABQAAABQBCAAIIgIgAIoABQBRQMQBqgAASoJBQaIAJJJCABACIAIJoJQACgABoASoAQCIAIgCoSIJAIRgSAQSACoJooJIABiAAARQCQAoJBIRSaIAhCAooJACAIIgQAJAhQACRBgAIASQoIJAIAIBoQoAMCCCIRIIAQBqgCBAAAAoABgCAAoQIIJAACBAAAAQEACCBRCAIAQRQQSQAAQAAAAQAJJAQJBQoiQBqSAQjAIAoABCAAQACJKIAIoAQJBgSIJCCAMRgQQhAQIQiIIJCKIQACoBQJCIBAAAAIIIJCBoQAJQChQhQAAAARgACJQAQQJAIAAAIBIgAKQJoAJJogAhAQAAqIBoAoAoBIRJBAQoooQAQSJQCQJoJACgBKAIBRIBAQoABBIgRSARAAYAAJoIAKoBqIJCBIAIIBQCRAAAABhAIIoAAgoIBAJIAAAIBRoBIIJJQIgCAQJAAAAoAhAAAgBQAIJIQAIQAAIIBoQoBQBQoQCAIhACgIJQIJIAQohJAQQAQQQQQQBQAoBBoQgBBQQIQAJIBIBJCoAoQAgIgIAoIAIAAIJAoBQAJoJQCRAJooJIAgAAooIBRCAIAAQAhBQoAoRBBRIgIQAoAgBQQRBoJIQCCBAABQJCQRRJCIAJAAAIAAAABRAoACAoIBCQqQQABoQQQAQQRIBQAAAQRJAgBQJAQIBJBoAgAAAQJAAABqAIIBABBQiACgJBoiARAAAQgIoJBIAAIQBABARQJCACIQoBoQJRAIoQJJQBAJJJIoBQIBJgQAJBIBCIoJIABiAAAAoRAJoABQAoABgIJQAoQhJJCJgAQgoQBooBAAAAACIBoJAQIAJIAQQAQBJAooooJoBAAABQAAAAoJJAQAAoAJAQIgoQBgIIgAIAAoIAQAQAKIBAIIAQQQBRIRAAKQQAQCAIAABoJBoAIBABAAIAoJAABIoAoJAIQAIQIAAAIQBKooAIAAoRIBoIIIBAAAIJJoJACAAAoQAoRBBIQJCACAAIIAAoAAABIoBJAAAAIIABAAoBCAABoBBoABIBoJIRoJQIABqJIIABQAABgJAQCBCJooQoAJoJQAIBgAJIQAoCBoBJJBIgJoBJoBQIBJoRAABIAAIQJAIBAJJQoABoAAAoQAAJJAIBIQAAIBCBIAIIIIgAAAQhAAQAABoJgABooBAAoABQBoQBIQQIgAABIoAAAAKAAAAoJBIBoJgBQAQJIAAAAIQBoAABQQQBQAIBIoAoBJAooQARAIAJQJIQAQAAAAAAABBoQBQIBCAAIAAoAAIJoooABQAoJgRSBJIoooBoIAQJARAQQBQAAAAQQAAoQIRIgoQQgQQgQAAoQQQoBBQIQBBgIJQAQAAAABIAJgBBIAAAAoAIoQAJJIABoCoQAIgQQJQBoQJIgQBoBoQAAAABAAiAAAAAIIAoRAIRQgAoJQoAAoAIAAAAQJAgAACoAIAACIIBogoIBoBCIBoIAoIoJIAAoQQIQJBBoBQIAAAARgAAAAJJoJIBQoIAAAIIgIBoBoABQIooBRQAAAioAAAAQoJCQBoBAQJIRAAAAJBBIRAoAoQCJBIAAAIoBAAIQQoJBIJABIAIAAABQJAoAAQAAAAIAAAAAAAAIoBAJAAAAoBoAIgBJAAoQBoBoAAooBoAQABBBQBAIAAABQJAJgJJIAQQJIBQgJIQoBoJgBBJgJAABABRIQBQgIoJJAAJAAAABCQBIIoJooAAIAQJQBAAJoRQIJBooQgJIAAQAQAIAAAABJAAABQAJIoAAAoJBBRRIIAJoQAAAAoAAJgBoBJABoJJAJoAABRoQAAAAQRIQAIQJBoQJBAQJIgAAIAAJBAoooAAAAoAAIoQQgJQABIAoQAAIJBgAAQBIAoABoABBIJBoJBoBAoCAAAABooBQABoQAAAIJABIAABBRQQJQQQBBQABJJJJoAAAIoBoQQJQJoAABIBAAAABJgAQJAAAAoIAIBIAAAAQQBAJQBJIBAABJAAoJIJAABoAAAABBoIRoAAIJooQJBoJoIAAJoJAQJBJAQAAAABQBIAAAJBBoQBoABBABAAIJgAAQAIoIoAQQBoAIIAAoRooAQBAJBoJBoAABIQAAAAoJARAAAAAJAIRBBIABBoJJABoBAJgBoQBBBoJJAJJBoQJIRoJQAIABqJIIABQAABgJAQCBCJooQoAJoJQAIBgAJIQAoCBoBJJBIgJoBJoBQIBJoRAABIAAIQJAIBAJJQoABoAAAoQAAJJAIBIQAAIBCBIAIIIIgAAAQhAAQAABoJgABooBAAoABQBoQBIQQIgAABIoAAAAKAAAAoJBIBoJgBQAQJIAAAAIQBoAABQQQBQAIBIoAoBJAooQARAIAJQJIQAQAAAAAAABBoQBQIBCAAIAAoAAIJoooABQAoJgRSBJIoooBoIAQJARAQQBQAAAAQQAAoQIRIgoQQgQQgQAAoQQQoBBQIQBBgIJQAQAAAABIAJgBBIAAAAoAIoQAJJIABoCoQAIgQQJQBoQJIgQBoBoQAAAABAAiAAAAAIIAoRAIRQgAoJQoAAoAIAAAAQJAgAACoAIAACIIBogoIBoBCIBoIAoIoJIAAoQQIQJBBoBQIAAAARgAAAAJJoJIBQoIAAAIIgIBoBoABQIooBRQAAAioAAAAQoJCQBoBAQJIRAAAAJBBIRAoAoQCJBIAAAIoBAAIQQoJBIJABIAIAAABQJAoAAQAAAAIAAAAAAAAIoBAJAAAAoBoAIgBJAAoQBoBoAAooBoAQABBBQBAIAAABQJAJgJJIAQQJIBQgJIQoBoJgBBJgJAABABRIQBQgIoJJAAJAAAABCQBIIoJooAAIAQJQBAAJoRQIJBooQgJIAAQAQAIAAAABJAAABQAJIoAAAoJBBRRIIAJoQAAAAoAAJgBoBJABoJJAJoAABRoQAAAAQRIQAIQJBoQJBAQJIgAAIAAJBAoooAAAAoAAIoQQgJQABIAoQAAIJBgAAQBIAoABoABBIJBoJBoBAoCAAAABooBQABoQAAAIJABIAABBRQQJQQQBBQABJJJJoAAAIoBoQQJQJoAABIBAAAABJgAQJAAAAoIAIBIAAAAQQBAJQBJIBAABJAAoJIJAABoAAAABBoIRoAAIJooQJBoJoIAAJoJAQJBJAQAAAABQBIAAAJBBoQBoABBABAAIJgAAQAIoIoAQQBoAIIAAoRooAQBAJBoJBoAABIQAAAAoJARAAAAAJAIRBBIABBoJJABoBAJgBoQBBBoJJAJJBoQJIRoJQAIABqJIIABQAABgJAQCBCJooQoAJoJQAIBgAJIQAoCBoBJJBIgJoBJoBQIBJoRAABIAAIQJAIBAJJQoABoAAAoQAAJJAIBIQAAIBCBIAIIIIgAAAQhAAQAABoJgABooBAAoABQBoQBIQQIgAABIoAAAAKAAAAoJBIBoJgBQAQJIAAAAIQBoAABQQQBQAIBIoAoBJAooQARAIAJQJIQAQAAAAAAABBoQBQIBCAAIAAoAAIJoooABQAoJgRSBJIoooBoIAQJARAQQBQAAAAQQAAoQIRIgoQQgQQgQAAoQQQoBBQIQBBgIJQAQAAAABIAJgBBIAAAAoAIoQAJJIABoCoQAIgQQJQBoQJIgQBoBoQAAAABAAiAAAAAIIAoRAIRQgAoJQoAAoAIAAAAQJAgAACoAIAACIIBogoIBoBCIBoIAoIoJIAAoQQIQJBBoBQIAAAARgAAAAJJoJIBQoIAAAIIgIBoBoABQIooBRQAAAioAAAAQoJCQBoBAQJIRAAAAJBBIRAoAoQCJBIAAAIoBAAIQQoJBIJABIAIAAABQJAoAAQAAAAIAAAAAAAAIoBAJAAAAoBoAIgBJAAoQBoBoAAooBoAQABBBQBAIAAABQJAJgJJIAQQJIBQgJIQoBoJgBBJgJAABABRIQBQgIoJJAAJAAAABCQBIIoJooAAIAQJQBAAJoRQIJBooQgJIAAQAQAIAAAABJAAABQAJIoAAAoJBBRRIIAJoQAAAAoAAJgBoBJABoJJAJoAABRoQAAAAQRIQAIQJBoQJBAQJIgAAIAAJBAoooAAAAoAAIoQQgJQABIAoQAAIJBgAAQBIAoABoABBIJBoJBoBAoCAAAABooBQABoQAAAIJABIAABBRQQJQQQBBQABJJJJoAAAIoBoQQJQJoAABIBAAAABJgAQJAAAAoIAIBIAAAAQQBAJQBJIBAABJAAoJIJAABoAAAABBoIRoAAIJooQJBoJoIAAJoJAQJBJAQAAAABQBIAAAJBBoQBoABBABAAIJgAAQAIoIoAQQBoAIIAAoRooAQBAJBoJBoAABIQAAAAoJARAAAAAJAIRBBIABBoJJABoBAJgBoQBBBoJJAJJBoQJIRoJQAIABqJIIABQAABgJAQCBCJooQoAJoJQAIBgAJIQAoCBoBJJBIgJoBJoBQIBJoRAABIAAIQJAIBAJJQoABoAAAoQAAJJAIBIQAAIBCBIAIIIIgAAAQhAAQAABoJgABooBAAoABQBoQBIQQIgAABIoAAAAKAAAAoJBIBoJgBQAQJIAAAAIQBoAABQQQBQAIBIoAoBJAooQARAIAJQJIQAQAAAAAAABBoQBQIBCAAIAAoAAIJoooABQAoJgRSBJIoooBoIAQJARAQQBQAAAAQQAAoQIRIgoQQgQQgQAAoQQQoBBQIQBBgIJQAQAAAABIAJgBBIAAAAoAIoQAJJIABoCoQAIgQQJQBoQJIgQBoBoQAAAABAAiAAAAAIIAoRAIRQgAoJQoAAoAIAAAAQJAgAACoAIAACIIBogoIBoBCIBoIAoIoJIAAoQQIQJBBoBQIAAAARgAAAAJJoJIBQoIAAAIIgIBoBoABQIooBRQAAAioAAAAQoJCQBoBAQJIRAAAAJBBIRAoAoQCJBIAAAIoBAAIQQoJBIJABIAIAAABQJAoAAQAAAAIAAAAAAAAIoBAJAAAAoBoAIgBJAAoQBoBoAAooBoAQABBBQBAIAAABQJAJgJJIAQQJIBQgJIQoBoJgBBJgJAABABRIQBQgIoJJAAJAAAABCQBIIoJooAAIAQJQBAAJoRQIJBooQgJIAAQAQAIAAAABJAAABQAJIoAAAoJBBRRIIAJoQAAAAoAAJgBoBJABoJJAJoAABRoQAAAAQRIQAIQJBoQJBAQJIgAAIAAJBAoooAAAAoAAIoQQgJQABIAoQAAIJBgAAQBIAoABoABBIJBoJBoBAoCAAAABooBQABoQAAAIJABIAABBRQQJQQQBBQABJJJJoAAAIoBoQQJQJoAABIBAAAABJgAQJAAAAoIAIBIAAAAQQBAJQBJIBAABJAAoJIJAABoAAAABBoIRoAAIJooQJBoJoIAAJoJAQJBJAQAAAABQBIAAAJBBoQBoABBABAAIJgAAQAIoIoAQQBoAIIAAoRooAQBAJBoJBoAABIQAAAAoJARAAAAAJAIRBBIABBoJJABoBAJgBoQBBBoJJAJJBoQJIRoJoQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==', 'base64');
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.end(buf);
@@ -220,13 +213,11 @@ module.exports = async (req, res) => {
     </div>`));
   }
 
-  // ── Fingerprint устройства ──────────────────────────────────────────────
   const ua = req.headers['user-agent'] || '';
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress || '';
   const fingerprint = Buffer.from(ua + '|' + ip).toString('base64').slice(0, 32);
 
   if (clients[token].fingerprint) {
-    // Устройство уже зафиксировано — проверяем
     if (clients[token].fingerprint !== fingerprint) {
       res.statusCode = 403;
       return res.end(html(`<div class="box" style="text-align:center">
@@ -236,7 +227,6 @@ module.exports = async (req, res) => {
       </div>`));
     }
   } else {
-    // Первое открытие — фиксируем устройство
     clients[token].fingerprint = fingerprint;
     clients[token].deviceInfo = ua.slice(0, 100);
   }
@@ -260,89 +250,101 @@ module.exports = async (req, res) => {
 <title>Калькулятор</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { width:100%; height:100%; background:#000; overflow:hidden;
-    font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif; }
+
+  /* БАГ 4: position:fixed + top/left/right/bottom:0 = калькулятор не прыгает при фокусе клавиатуры */
+  html, body {
+    width:100%; height:100%;
+    background:#000;
+    overflow:hidden;
+    font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  }
   .calculator {
-    width:100%; height:100%; height:100dvh; background:#000;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:#000;
     display:flex; flex-direction:column; justify-content:flex-end;
-    padding:0 0 max(env(safe-area-inset-bottom,34px),34px) 0;
+    padding-bottom: max(env(safe-area-inset-bottom, 34px), 34px);
   }
   .display {
     padding:0 24px 20px 24px; text-align:right;
     display:flex; flex-direction:column; justify-content:flex-end; flex:1;
+    min-height:0;
   }
-  .history { font-size:17px; color:#636366; margin-bottom:0;
+  .history {
+    font-size:17px; color:#636366; margin-bottom:0;
     white-space:nowrap; overflow-x:auto; text-align:right;
-    scrollbar-width:none; -ms-overflow-style:none; line-height:1.3; }
+    scrollbar-width:none; -ms-overflow-style:none; line-height:1.3;
+  }
   .history::-webkit-scrollbar { display:none; }
-  .expression { display:none; }
-  .result { font-weight:300; color:#fff; line-height:1;
-    overflow:hidden; white-space:nowrap; transition:font-size 0.1s; font-size:72px; }
-  .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px; }
-  .btn { border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
+  .result {
+    font-weight:300; color:#fff; line-height:1;
+    overflow:hidden; white-space:nowrap; transition:font-size 0.1s; font-size:72px;
+  }
+  .buttons {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 12px;
+  }
+  .btn {
+    border:none; border-radius:50%; font-size:30px; font-weight:400; cursor:pointer;
     aspect-ratio:1; display:flex; align-items:center; justify-content:center;
     transition:filter 0.08s; user-select:none; -webkit-user-select:none;
-    touch-action:manipulation; -webkit-touch-callout:none; }
+  }
   .btn:active { filter:brightness(1.5); }
   .btn.gray   { background:#a5a5a5; color:#000; }
   .btn.dark   { background:#333333; color:#fff; }
   .btn.orange { background:#ff9f0a; color:#fff; }
   .btn.orange.active-op { background:#fff; color:#ff9f0a; }
-  .btn.zero { grid-column:span 2; border-radius:50px; justify-content:flex-start;
+  .btn.zero {
+    grid-column:span 2; border-radius:50px; justify-content:flex-start;
     padding-left:28px; aspect-ratio:unset;
-    height:calc((100vw - 24px - 36px) / 4); max-height:85px; }
+    height:calc((100vw - 24px - 36px) / 4); max-height:85px;
+  }
 </style>
 </head>
 <body>
 <div class="calculator">
   <div class="display">
-    <div class="history"    id="history"></div>
-    <div class="expression" id="expression"></div>
-    <div class="result"     id="result">0</div>
+    <div class="history" id="history"></div>
+    <div class="result"  id="result">0</div>
   </div>
   <div class="buttons">
-    <button class="btn gray"   id="btnAC" onclick="pressAC()">AC</button>
-    <button class="btn gray"   onclick="pressPlusMinus()">+/-</button>
-    <button class="btn gray"   id="btnPct" onclick="pressPercent()"><span id="pctText">%</span></button>
-    <button class="btn orange" id="opDiv" onclick="pressOp('÷')">÷</button>
-    <button class="btn dark" id="key7" onclick="pressNum('7')">7</button>
-    <button class="btn dark" id="key8" onclick="pressNum('8')">8</button>
-    <button class="btn dark" id="key9" onclick="pressNum('9')">9</button>
-    <button class="btn orange" id="opMul" onclick="pressOp('×')">×</button>
-    <button class="btn dark" id="key4" onclick="pressNum('4')">4</button>
-    <button class="btn dark" id="key5" onclick="pressNum('5')">5</button>
-    <button class="btn dark" id="key6" onclick="pressNum('6')">6</button>
-    <button class="btn orange" id="opSub" onclick="pressOp('−')">−</button>
-    <button class="btn dark" id="key1" onclick="pressNum('1')">1</button>
-    <button class="btn dark" id="key2" onclick="pressNum('2')">2</button>
-    <button class="btn dark" id="key3" onclick="pressNum('3')">3</button>
-    <button class="btn orange" id="opAdd" onclick="pressOp('+')">+</button>
+    <button class="btn gray"   id="btnAC"  onclick="pressAC()">AC</button>
+    <button class="btn gray"           onclick="pressPlusMinus()">+/-</button>
+    <button class="btn gray"           onclick="pressPercent()"><span id="pctText">%</span></button>
+    <button class="btn orange" id="opDiv"  onclick="pressOp('÷')">÷</button>
+    <button class="btn dark"   id="key7"   onclick="pressNum('7')">7</button>
+    <button class="btn dark"   id="key8"   onclick="pressNum('8')">8</button>
+    <button class="btn dark"   id="key9"   onclick="pressNum('9')">9</button>
+    <button class="btn orange" id="opMul"  onclick="pressOp('×')">×</button>
+    <button class="btn dark"   id="key4"   onclick="pressNum('4')">4</button>
+    <button class="btn dark"   id="key5"   onclick="pressNum('5')">5</button>
+    <button class="btn dark"   id="key6"   onclick="pressNum('6')">6</button>
+    <button class="btn orange" id="opSub"  onclick="pressOp('−')">−</button>
+    <button class="btn dark"   id="key1"   onclick="pressNum('1')">1</button>
+    <button class="btn dark"   id="key2"   onclick="pressNum('2')">2</button>
+    <button class="btn dark"   id="key3"   onclick="pressNum('3')">3</button>
+    <button class="btn orange" id="opAdd"  onclick="pressOp('+')">+</button>
     <button class="btn dark zero" id="key0" onclick="pressNum('0')">0</button>
-    <button class="btn dark" onclick="pressDot()">.</button>
-    <button class="btn orange" onclick="pressEquals()">=</button>
+    <button class="btn dark"                onclick="pressDot()">.</button>
+    <button class="btn orange"              onclick="pressEquals()">=</button>
   </div>
 </div>
 <script>
-let current='0', numVal=0, op1=null, pendOp=null, fresh=true, historyParts=[];
-// numVal — всегда числовое значение current, обновляется вместе с ним
+// ── Состояние ─────────────────────────────────────────────────────────────────
+// БАГ 1-3: разделяем числовое значение (currentValue) и строку ввода (currentStr)
+// parseFloat никогда не читает форматированную строку с пробелами/запятыми
+let currentValue = 0;   // всегда число
+let currentStr   = '0'; // строка ввода (без форматирования, только цифры/точка/минус)
+let op1 = null, pendOp = null, fresh = true, historyParts = [];
 let mPhase=0, mTarget=0, mRes1=0, mRes2=0;
 let xDigits=[], xIdx=0, xShown='';
 
-// setCurrent обновляет current И numVal одновременно
-// current — ЧИСТАЯ строка без пробелов ("2000", "8.6")
-// numVal  — числовое значение для вычислений
-function setCurrent(s) {
-  current = String(s);
-  numVal = parseFloat(current) || 0;
-}
-
+// ── Magic ──────────────────────────────────────────────────────────────────────
 function buildTarget(){
   const t=new Date(Date.now()+60000);
   const p=n=>String(n).padStart(2,'0');
   const yy=String(t.getFullYear()).slice(-2);
   return parseInt(p(t.getHours())+p(t.getMinutes())+p(t.getDate())+p(t.getMonth()+1)+yy,10);
 }
-
 function showDot(n){
   clearDots();
   const el=document.getElementById('key'+n);
@@ -356,31 +358,71 @@ function showDot(n){
 }
 function clearDots(){for(let i=0;i<=9;i++){const d=document.getElementById('keydot'+i);if(d)d.remove();}}
 
+// ── Отображение ───────────────────────────────────────────────────────────────
 const _cv=document.createElement('canvas');
 const _cx=_cv.getContext('2d');
-function setDisplay(val){
-  current=String(val);
+
+// Форматирование целого числа с пробелами-разделителями тысяч
+function fmtInt(n){
+  const s=String(Math.abs(Math.trunc(n)));
+  let out='';
+  for(let i=0;i<s.length;i++){if(i>0&&(s.length-i)%3===0)out+=' ';out+=s[i];}
+  return n<0?'-'+out:out;
+}
+// Форматирование числа для истории и результата (запятая как десятичный разделитель)
+function fmt(n){
+  if(!isFinite(n))return '0';
+  // toPrecision убирает плавающую погрешность JS (0.1+0.2 = 0.30000000004)
+  const rounded=parseFloat(n.toPrecision(10));
+  if(Number.isInteger(rounded))return fmtInt(rounded);
+  const r=parseFloat(rounded.toFixed(4));
+  const parts=String(r).split('.');
+  return fmtInt(parseInt(parts[0]))+','+parts[1];
+}
+
+// Авторазмер шрифта
+function _autosize(text){
   const el=document.getElementById('result');
-  // Форматируем целые числа с пробелами для отображения (не меняем current)
-  let display=current;
-  if(!current.includes('.')&&!current.startsWith('-')&&/^\d+$/.test(current)){
-    display=fmtInt(parseInt(current));
-  }
-  el.textContent=display;
+  el.textContent=text;
   const maxW=(window.innerWidth||375)-48;
   const sizes=[72,64,56,48,40,34,28,22,18,15];
   let chosen=15;
   for(const s of sizes){
     _cx.font='300 '+s+'px -apple-system,sans-serif';
-    if(_cx.measureText(txtForMeasure).width<=maxW){chosen=s;break;}
+    if(_cx.measureText(text).width<=maxW){chosen=s;break;}
   }
   el.style.fontSize=chosen+'px';
   el.style.letterSpacing=chosen>=40?'-2px':chosen>=28?'-1px':'0px';
 }
-function setExpr(v){document.getElementById('expression').textContent=v;}
+
+// Показать результат операции (число → форматируем)
+function setDisplayNum(num){
+  currentValue=num;
+  currentStr=String(num);
+  fresh=true;
+  _autosize(fmt(num));
+}
+// Показать текущий ввод (строка → форматируем только для вывода, currentStr не трогаем)
+function setDisplayStr(str){
+  currentStr=str;
+  currentValue=parseFloat(str)||0;
+  let display;
+  if(str.endsWith('.')){
+    // Пользователь только нажал точку — показываем "0," или "1 234,"
+    const intPart=str.slice(0,-1);
+    display=fmtInt(parseInt(intPart)||0)+',';
+  } else if(str.includes('.')){
+    const [intPart,decPart]=str.split('.');
+    display=fmtInt(parseInt(intPart)||0)+','+decPart;
+  } else {
+    display=fmtInt(parseInt(str)||0);
+  }
+  _autosize(display);
+}
+
 function setHistory(v){document.getElementById('history').textContent=v;}
 function renderHistory(){
-  const h=historyParts.join(' ').replace(/^= /,'');
+  const h=historyParts.join(' ');
   setHistory(h);
   const el=document.getElementById('history');
   el.scrollLeft=el.scrollWidth;
@@ -391,11 +433,12 @@ function setActiveOp(op){
   if(op&&map[op])document.getElementById(map[op]).classList.add('active-op');
 }
 
+// ── Кнопки ────────────────────────────────────────────────────────────────────
 function pressAC(){
-  setCurrent('0');op1=null;pendOp=null;fresh=true;
+  currentValue=0;currentStr='0';op1=null;pendOp=null;fresh=true;
   mPhase=0;mTarget=0;mRes1=0;mRes2=0;
   xDigits=[];xIdx=0;xShown='';historyParts=[];
-  setDisplay('0');numVal=0;setExpr('');setHistory('');setActiveOp(null);
+  _autosize('0');setHistory('');setActiveOp(null);
   document.getElementById('btnAC').textContent='AC';
   document.getElementById('pctText').innerHTML='%';
   clearDots();
@@ -414,42 +457,50 @@ function pressNum(n){
   if(mPhase===5){
     if(xIdx<xDigits.length){
       xShown+=xDigits[xIdx];xIdx++;
-      setDisplay(xShown);
+      _autosize(xShown);
       historyParts[historyParts.length-1]=xShown;
       renderHistory();
     }
     return;
   }
   setActiveOp(null);
-  if(fresh){setCurrent(n);fresh=false;}
-  else{if(current.length>=9)return;setCurrent(current==='0'?n:current+n);}
-  setDisplay(current);
+  let newStr;
+  if(fresh){ newStr=n; fresh=false; }
+  else {
+    // Ограничение: не более 9 значащих цифр
+    const digits=currentStr.replace(/[^0-9]/g,'');
+    if(digits.length>=9)return;
+    newStr=(currentStr==='0')?n:currentStr+n;
+  }
+  setDisplayStr(newStr);
 }
+
 function pressDot(){
   if(mPhase===5)return;
   document.getElementById('btnAC').textContent='C';
-  if(fresh){setCurrent('0.');fresh=false;}
-  else if(!current.includes('.')){setCurrent(current+'.');}
-  setDisplay(current);
+  let newStr;
+  if(fresh){ newStr='0.'; fresh=false; }
+  else if(!currentStr.includes('.')){ newStr=currentStr+'.'; }
+  else return; // точка уже есть
+  setDisplayStr(newStr);
 }
+
 function pressPlusMinus(){
   if(mPhase===5)return;
-  if(current==='0')return;
-  setCurrent(current.startsWith('-')?current.slice(1):'-'+current);
-  setDisplay(current);
+  if(currentStr==='0')return;
+  const newStr=currentStr.startsWith('-')?currentStr.slice(1):'-'+currentStr;
+  setDisplayStr(newStr);
 }
 
 function pressOp(op){
   if(mPhase===5)return;
   setActiveOp(op);
-  const val=numVal;
+  const val=currentValue; // ← всегда число, никакого parseFloat(строки с пробелами)
 
   if(mPhase===2&&op==='+'){
     pendOp='+';fresh=true;
     historyParts=[fmt(mRes1)+' +'];
-    renderHistory();
-    mPhase=3;
-    return;
+    renderHistory();mPhase=3;return;
   }
   if(mPhase===4&&op==='+'){
     const x=mTarget-mRes2;
@@ -460,13 +511,12 @@ function pressOp(op){
     showDot(dc);
     mPhase=5;fresh=true;
     historyParts=[fmt(mRes1)+' + '+fmt(mRes2-mRes1)+' = '+fmt(mRes2)+' +'];
-    renderHistory();
-    return;
+    renderHistory();return;
   }
 
   if(op1!==null&&!fresh){
     const res=doCalc(op1,pendOp,val);
-    setDisplay(fmt(res));
+    setDisplayNum(res);                    // ← setDisplayNum, не fmt в current
     historyParts=[fmt(res)+' '+op];renderHistory();
     op1=res;
   } else {
@@ -480,36 +530,33 @@ function pressEquals(){
   if(mPhase===5){
     historyParts[historyParts.length-1]=xShown;
     setHistory(historyParts.join(' ')+' =');
-    setDisplay(fmtInt(mTarget));setExpr('');setActiveOp(null);
+    _autosize(fmtInt(mTarget));setActiveOp(null);
     mPhase=0;fresh=true;
     document.getElementById('pctText').innerHTML='%';
-    clearDots();
-    return;
+    clearDots();return;
   }
   if(pendOp===null)return;
-  const val=parseFloat(current);
+  const val=currentValue;
 
   if(mPhase===1){
     const res=doCalc(op1,pendOp,val);
     historyParts=[fmt(op1)+' '+pendOp+' '+fmt(val)+' ='];
     renderHistory();
-    setDisplay(fmt(res));setActiveOp(null);
-    mRes1=res;mPhase=2;op1=res;pendOp=null;fresh=true;
-    return;
+    setDisplayNum(res);setActiveOp(null);
+    mRes1=res;mPhase=2;op1=res;pendOp=null;return;
   }
   if(mPhase===3){
     const res=mRes1+val;
-    setDisplay(fmt(res));setActiveOp(null);
-    mRes2=res;mPhase=4;op1=res;pendOp=null;fresh=true;
+    setDisplayNum(res);setActiveOp(null);
+    mRes2=res;mPhase=4;op1=res;pendOp=null;
     historyParts=[fmt(mRes1)+' + '+fmt(val)+' ='];
-    renderHistory();
-    return;
+    renderHistory();return;
   }
 
   const res=doCalc(op1,pendOp,val);
   historyParts=[fmt(op1)+' '+pendOp+' '+fmt(val)+' ='];
   renderHistory();
-  setDisplay(fmt(res));setActiveOp(null);
+  setDisplayNum(res);setActiveOp(null);
   op1=null;pendOp=null;fresh=true;
 }
 
@@ -519,19 +566,6 @@ function doCalc(a,op,b){
   if(op==='×')return a*b;
   if(op==='÷')return b!==0?a/b:0;
   return b;
-}
-function fmt(n){
-  if(!isFinite(n))return '0';
-  if(Number.isInteger(n))return fmtInt(n);
-  const r=parseFloat(n.toFixed(4));
-  const parts=String(r).split('.');
-  return fmtInt(parseInt(parts[0]))+','+parts[1];
-}
-function fmtInt(n){
-  const s=String(Math.abs(n));
-  let out='';
-  for(let i=0;i<s.length;i++){if(i>0&&(s.length-i)%3===0)out+=' ';out+=s[i];}
-  return n<0?'-'+out:out;
 }
 </script>
 </body>
