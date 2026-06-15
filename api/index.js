@@ -268,6 +268,7 @@ module.exports = async (req, res) => {
     width:100%; height:100%; height:100dvh; background:#000;
     display:flex; flex-direction:column; justify-content:flex-end;
     padding:0 0 max(env(safe-area-inset-bottom,34px),34px) 0;
+    overscroll-behavior:none;
   }
   .display {
     padding:0 24px 20px 24px; text-align:right;
@@ -356,32 +357,43 @@ const _cx=_cv.getContext('2d');
 // НЕ меняет currentNum — только визуал
 function setDisplay(val){
   const el=document.getElementById('result');
+  let displayTxt;
+
   if(typeof val === 'number'){
+    // Число из вычисления
     currentNum = val;
     current = String(val);
-    el.textContent = fmtNum(val);
+    displayTxt = fmtNum(val);
   } else {
-    // строка при вводе цифр
+    // Строка при вводе цифр пользователем
     current = String(val);
-    currentNum = parseFloat(current.replace(',','.')) || 0;
-    // форматируем целые с пробелами, дробные как есть
-    if(/^-?\d+$/.test(current)){
-      el.textContent = fmtInt(parseInt(current));
+    if(current.includes('.')){
+      // Дробное при вводе — показываем как есть
+      currentNum = parseFloat(current) || 0;
+      displayTxt = current;
+    } else if(/^-?\d+$/.test(current)){
+      // Целое — форматируем с пробелами
+      const n = parseInt(current);
+      currentNum = n;
+      displayTxt = fmtInt(n);
     } else {
-      el.textContent = current;
+      currentNum = 0;
+      displayTxt = current;
     }
   }
-  // Масштабируем шрифт
-  const txt = el.textContent;
-  const maxW=(window.innerWidth||375)-48;
-  const sizes=[72,64,56,48,40,34,28,22,18,15];
-  let chosen=15;
+
+  el.textContent = displayTxt;
+
+  // Масштабируем шрифт под ширину экрана
+  const maxW = (window.innerWidth || 375) - 48;
+  const sizes = [72,64,56,48,40,34,28,22,18,15];
+  let chosen = 15;
   for(const s of sizes){
-    _cx.font='300 '+s+'px -apple-system,sans-serif';
-    if(_cx.measureText(txt).width<=maxW){chosen=s;break;}
+    _cx.font = '300 '+s+'px -apple-system,sans-serif';
+    if(_cx.measureText(displayTxt).width <= maxW){ chosen=s; break; }
   }
-  el.style.fontSize=chosen+'px';
-  el.style.letterSpacing=chosen>=40?'-2px':chosen>=28?'-1px':'0px';
+  el.style.fontSize = chosen+'px';
+  el.style.letterSpacing = chosen>=40?'-2px':chosen>=28?'-1px':'0px';
 }
 
 function setExpr(v){document.getElementById('expression').textContent=v;}
@@ -397,9 +409,6 @@ function setActiveOp(op){
   const map={'÷':'opDiv','×':'opMul','−':'opSub','+':'opAdd'};
   if(op&&map[op])document.getElementById(map[op]).classList.add('active-op');
 }
-
-// Блокируем скролл страницы без position:fixed
-document.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 
 function pressAC(){
   currentNum=0;current='0';op1=null;pendOp=null;fresh=true;
