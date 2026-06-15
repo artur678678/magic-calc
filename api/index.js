@@ -326,7 +326,7 @@ module.exports = async (req, res) => {
   </div>
 </div>
 <script>
-let currentNum=0, current='0', op1=null, pendOp=null, fresh=true, historyParts=[];
+let current='0', op1=null, pendOp=null, fresh=true, historyParts=[];
 let mPhase=0, mTarget=0, mRes1=0, mRes2=0;
 let xDigits=[], xIdx=0, xShown='';
 
@@ -353,48 +353,40 @@ function clearDots(){for(let i=0;i<=9;i++){const d=document.getElementById('keyd
 const _cv=document.createElement('canvas');
 const _cx=_cv.getContext('2d');
 
-// setDisplay принимает число или строку, форматирует для экрана
-// НЕ меняет currentNum — только визуал
+// current — всегда чистое число в виде строки: "2000", "8.6", "-5"
+// НЕ содержит пробелов или запятых
+// setDisplay форматирует для показа, но не меняет current
 function setDisplay(val){
   const el=document.getElementById('result');
   let displayTxt;
-
   if(typeof val === 'number'){
-    // Число из вычисления
-    currentNum = val;
-    current = String(val);
+    // Результат вычисления — сохраняем как строку без форматирования
+    current = Number.isInteger(val) ? String(val) : String(parseFloat(val.toFixed(8)));
     displayTxt = fmtNum(val);
   } else {
-    // Строка при вводе цифр пользователем
+    // Строка при вводе — current уже обновлён в pressNum
     current = String(val);
-    if(current.includes('.')){
-      // Дробное при вводе — показываем как есть
-      currentNum = parseFloat(current) || 0;
-      displayTxt = current;
-    } else if(/^-?\d+$/.test(current)){
-      // Целое — форматируем с пробелами
-      const n = parseInt(current);
-      currentNum = n;
-      displayTxt = fmtInt(n);
+    // Форматируем для показа
+    if(/^-?\d+$/.test(current)){
+      displayTxt = fmtInt(parseInt(current, 10));
     } else {
-      currentNum = 0;
-      displayTxt = current;
+      displayTxt = current; // дробное или "-"
     }
   }
-
   el.textContent = displayTxt;
-
-  // Масштабируем шрифт под ширину экрана
-  const maxW = (window.innerWidth || 375) - 48;
-  const sizes = [72,64,56,48,40,34,28,22,18,15];
-  let chosen = 15;
+  const maxW=(window.innerWidth||375)-48;
+  const sizes=[72,64,56,48,40,34,28,22,18,15];
+  let chosen=15;
   for(const s of sizes){
-    _cx.font = '300 '+s+'px -apple-system,sans-serif';
-    if(_cx.measureText(displayTxt).width <= maxW){ chosen=s; break; }
+    _cx.font='300 '+s+'px -apple-system,sans-serif';
+    if(_cx.measureText(displayTxt).width<=maxW){chosen=s;break;}
   }
-  el.style.fontSize = chosen+'px';
-  el.style.letterSpacing = chosen>=40?'-2px':chosen>=28?'-1px':'0px';
+  el.style.fontSize=chosen+'px';
+  el.style.letterSpacing=chosen>=40?'-2px':chosen>=28?'-1px':'0px';
 }
+
+// Получить числовое значение current
+function getVal(){ return parseFloat(current) || 0; }
 
 function setExpr(v){document.getElementById('expression').textContent=v;}
 function setHistory(v){document.getElementById('history').textContent=v;}
@@ -411,7 +403,7 @@ function setActiveOp(op){
 }
 
 function pressAC(){
-  currentNum=0;current='0';op1=null;pendOp=null;fresh=true;
+  current='0';op1=null;pendOp=null;fresh=true;
   mPhase=0;mTarget=0;mRes1=0;mRes2=0;
   xDigits=[];xIdx=0;xShown='';historyParts=[];
   setDisplay('0');setExpr('');setHistory('');setActiveOp(null);
@@ -442,7 +434,7 @@ function pressNum(n){
   setActiveOp(null);
   if(fresh){current=n;fresh=false;}
   else{if(current.length>=9)return;current=(current==='0')?n:current+n;}
-  setDisplay(current); // передаём строку → форматируется при вводе
+  setDisplay(current); // передаём строку — current уже обновлён выше
 }
 
 function pressDot(){
@@ -452,18 +444,18 @@ function pressDot(){
   else if(!current.includes('.'))current+='.';
   setDisplay(current);
 }
+
 function pressPlusMinus(){
   if(mPhase===5)return;
   if(current==='0')return;
   current=current.startsWith('-')?current.slice(1):'-'+current;
-  currentNum=-currentNum;
   setDisplay(current);
 }
 
 function pressOp(op){
   if(mPhase===5)return;
   setActiveOp(op);
-  const val=currentNum; // ← используем числовое значение, не строку
+  const val=getVal(); // ← parseFloat(current) — current чистая строка
 
   if(mPhase===2&&op==='+'){
     pendOp='+';fresh=true;
@@ -487,7 +479,7 @@ function pressOp(op){
 
   if(op1!==null&&!fresh){
     const res=doCalc(op1,pendOp,val);
-    setDisplay(res); // передаём число
+    setDisplay(res); // число
     historyParts=[fmtNum(res)+' '+op];renderHistory();
     op1=res;
   } else {
@@ -508,7 +500,7 @@ function pressEquals(){
     return;
   }
   if(pendOp===null)return;
-  const val=currentNum; // ← используем числовое значение
+  const val=getVal(); // ← parseFloat(current)
 
   if(mPhase===1){
     const res=doCalc(op1,pendOp,val);
@@ -541,12 +533,9 @@ function doCalc(a,op,b){
   if(op==='÷')return b!==0?a/b:0;
   return b;
 }
-
-// fmtNum — форматирует число для отображения (с пробелами и запятой)
 function fmtNum(n){
   if(!isFinite(n))return '0';
   if(Number.isInteger(n))return fmtInt(n);
-  // дробное — используем запятую, до 6 знаков
   const r=parseFloat(n.toFixed(6));
   const parts=String(r).split('.');
   return fmtInt(parseInt(parts[0]))+','+parts[1].replace(/0+$/,'');
